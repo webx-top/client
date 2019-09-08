@@ -23,12 +23,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/admpub/nging/application/library/common"
 	listClient "github.com/webx-top/client/list"
 	"github.com/webx-top/com"
 	"github.com/webx-top/db"
 	"github.com/webx-top/db/lib/factory"
 	"github.com/webx-top/db/lib/factory/mysql"
+	"github.com/webx-top/db/lib/factory/pagination"
 	"github.com/webx-top/db/lib/reflectx"
 	"github.com/webx-top/db/lib/sqlbuilder"
 	"github.com/webx-top/echo"
@@ -123,7 +123,7 @@ type fieldInfo struct {
 	Sort  string
 }
 
-func (a *DataTable) Init(c echo.Context, ls *common.List) listClient.Client {
+func (a *DataTable) Init(c echo.Context, ls *pagination.List) listClient.Client {
 	a.BaseClient.Init(c, ls)
 	a.tableFields = make([]string, 0)
 	a.searches = []*Item{}

@@ -19,8 +19,8 @@
 package list
 
 import (
-	"github.com/admpub/nging/application/library/common"
 	"github.com/webx-top/db"
+	"github.com/webx-top/db/lib/factory/pagination"
 	"github.com/webx-top/db/lib/reflectx"
 	"github.com/webx-top/echo"
 )
@@ -31,12 +31,12 @@ func New() *BaseClient {
 
 type BaseClient struct {
 	echo.Context
-	List       *common.List
+	List       *pagination.List
 	SearchPK   bool
 	Middleware func(r db.Result) db.Result
 }
 
-func (a *BaseClient) Init(ctx echo.Context, ls *common.List) Client {
+func (a *BaseClient) Init(ctx echo.Context, ls *pagination.List) Client {
 	a.Context = ctx
 	a.List = ls
 	return a
@@ -80,7 +80,7 @@ func (a *BaseClient) Build(defaultFields ...string) *db.Compounds {
 //Client 客户端接口
 type Client interface {
 	//初始化数据
-	Init(echo.Context, *common.List) Client
+	Init(echo.Context, *pagination.List) Client
 
 	//结果数据
 	Apply(...string) error
