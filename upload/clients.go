@@ -18,6 +18,12 @@
 
 package upload
 
+import (
+	"io"
+
+	"github.com/webx-top/echo"
+)
+
 var clients = make(map[string]func() Client)
 var defaults = New(nil)
 
@@ -44,4 +50,24 @@ func Delete(name string) {
 	if _, ok := clients[name]; ok {
 		delete(clients, name)
 	}
+}
+
+type Storer interface {
+	Put(dstFile string, body io.Reader, size int64) (fileURL string, err error)
+}
+
+func Upload(ctx echo.Context, clientName string, result *Result, storer Storer) error {
+	client := Get(clientName)
+	client.Init(ctx, result)
+	body, err := client.Body()
+	if err != nil {
+		return client.Response(err.Error())
+	}
+	defer body.Close()
+	dstFile, err := result.DistFile()
+	if err != nil {
+		return client.Response(err.Error())
+	}
+	result.FileURL, err = storer.Put(dstFile, body, body.(Sizer).Size())
+	return client.Response(err.Error())
 }

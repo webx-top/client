@@ -21,17 +21,32 @@ package upload
 import (
 	"fmt"
 	"io"
+	"path/filepath"
+	"time"
 
 	"github.com/webx-top/echo"
 	"github.com/webx-top/echo/engine"
 )
 
 type Result struct {
-	FileID   int64
-	FileName string
-	FileURL  string
-	FileType FileType
-	Addon    interface{}
+	FileID            int64
+	FileName          string
+	FileURL           string
+	FileType          FileType
+	Addon             interface{}
+	distFileGenerator func(string) (string, error)
+}
+
+func (r *Result) SetDistFileGenerator(generator func(string) (string, error)) *Result {
+	r.distFileGenerator = generator
+	return r
+}
+
+func (r *Result) DistFile() (string, error) {
+	if r.distFileGenerator == nil {
+		return filepath.Join(time.Now().Format("2006/0102"), r.FileName), nil
+	}
+	return r.distFileGenerator(r.FileName)
 }
 
 func (r *Result) FileIdString() string {
