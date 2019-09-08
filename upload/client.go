@@ -65,7 +65,7 @@ func (a *BaseClient) Body() (file io.ReadCloser, err error) {
 
 func (a *BaseClient) Result(errMsg string) (r string) {
 	status := "1"
-	if errMsg != "" {
+	if len(errMsg) > 0 {
 		status = "0"
 	}
 	r = `{"Code":` + status + `,"Info":"` + errMsg + `","Data":{"Url":"` + a.Data.FileURL + `","Id":"` + a.Data.FileIdString() + `"}}`
