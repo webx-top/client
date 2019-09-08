@@ -32,9 +32,9 @@ func init() {
 }
 
 func New() uploadClient.Client {
-	return &XhEditor{
-		BaseClient: uploadClient.New(),
-	}
+	client := &XhEditor{}
+	client.BaseClient = uploadClient.New(client)
+	return client
 }
 
 type XhEditor struct {

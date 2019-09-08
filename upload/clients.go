@@ -19,7 +19,7 @@
 package upload
 
 var clients = make(map[string]func() Client)
-var defaults = New()
+var defaults = New(nil)
 
 func Register(name string, c func() Client) {
 	clients[name] = c

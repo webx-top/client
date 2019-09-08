@@ -31,9 +31,9 @@ func init() {
 }
 
 func New() uploadClient.Client {
-	return &Webuploader{
-		BaseClient: uploadClient.New(),
-	}
+	client := &Webuploader{}
+	client.BaseClient = uploadClient.New(client)
+	return client
 }
 
 type Webuploader struct {

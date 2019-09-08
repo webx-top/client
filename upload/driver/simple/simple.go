@@ -31,9 +31,9 @@ func init() {
 }
 
 func New() uploadClient.Client {
-	return &Simple{
-		BaseClient: uploadClient.New(),
-	}
+	client := &Simple{}
+	client.BaseClient = uploadClient.New(client)
+	return client
 }
 
 type Simple struct {

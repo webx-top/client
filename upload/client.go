@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"github.com/webx-top/echo"
+	"github.com/webx-top/echo/engine"
 )
 
 type Result struct {
@@ -37,13 +38,14 @@ func (r *Result) FileIdString() string {
 	return fmt.Sprintf(`%d`, r.FileID)
 }
 
-func New() *BaseClient {
-	return &BaseClient{}
+func New(object Client) *BaseClient {
+	return &BaseClient{Object: object}
 }
 
 type BaseClient struct {
 	Data *Result
 	echo.Context
+	Object Client
 }
 
 func (a *BaseClient) Init(ctx echo.Context, res *Result) {
@@ -72,6 +74,16 @@ func (a *BaseClient) Result(errMsg string) (r string) {
 	return
 }
 
+func (a *BaseClient) Response(errMsg string) error {
+	var result string
+	if a.Object != nil {
+		result = a.Object.Result(errMsg)
+	} else {
+		result = a.Result(errMsg)
+	}
+	return a.JSONBlob(engine.Str2bytes(result))
+}
+
 type Client interface {
 	//初始化
 	Init(echo.Context, *Result)
@@ -84,4 +96,6 @@ type Client interface {
 
 	//返回结果
 	Result(string) string
+
+	Response(string) error
 }

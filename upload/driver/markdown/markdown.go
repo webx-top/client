@@ -34,9 +34,9 @@ func init() {
 }
 
 func New() uploadClient.Client {
-	return &Markdown{
-		BaseClient: uploadClient.New(),
-	}
+	client := &Markdown{}
+	client.BaseClient = uploadClient.New(client)
+	return client
 }
 
 type Markdown struct {
