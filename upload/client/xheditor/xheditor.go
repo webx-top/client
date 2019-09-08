@@ -56,14 +56,16 @@ func (a *XhEditor) Body() (file io.ReadCloser, err error) {
 func (a *XhEditor) Result(errMsg string) (r string) {
 	var msg, publicURL string
 	if a.Form("immediate") == "1" {
-		publicURL = "!" + a.Data.FileUrl
+		publicURL = "!" + a.Data.FileURL
 	} else {
-		publicURL = a.Data.FileUrl
+		publicURL = a.Data.FileURL
 	}
 	switch a.Data.FileType {
 	case uploadClient.TypeImage, "":
 		msg = `{"url":"` + publicURL + `||||` + url.QueryEscape(a.Data.FileName) + `","localname":"` + a.Data.FileName + `","id":"` + a.Data.FileIdString() + `"}`
-	case uploadClient.TypeFlash, uploadClient.TypeMedia, "file":
+	case uploadClient.TypeFlash,
+		uploadClient.TypeAudio, uploadClient.TypeVideo,
+		"media", "file":
 		fallthrough
 	default:
 		msg = `{"url":"` + publicURL + `","id":"` + a.Data.FileIdString() + `"}`

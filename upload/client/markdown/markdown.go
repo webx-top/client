@@ -64,10 +64,10 @@ func (a *Markdown) Result(errMsg string) (r string) {
 	dialogID := a.Form(`dialog_id`)
 	if len(callback) > 0 && len(dialogID) > 0 {
 		//跨域上传返回操作
-		nextURL := callback + "?dialog_id=" + dialogID + "&temp=" + time.Now().String() + "&success=" + succed + "&message=" + url.QueryEscape(errMsg) + "&url=" + a.Data.FileUrl
+		nextURL := callback + "?dialog_id=" + dialogID + "&temp=" + time.Now().String() + "&success=" + succed + "&message=" + url.QueryEscape(errMsg) + "&url=" + a.Data.FileURL
 		a.Redirect(nextURL)
 	} else {
-		r = `{"success":` + succed + `,"message":"` + errMsg + `","url":"` + a.Data.FileUrl + `","id":"` + a.Data.FileIdString() + `"}`
+		r = `{"success":` + succed + `,"message":"` + errMsg + `","url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `"}`
 	}
 	return
 }

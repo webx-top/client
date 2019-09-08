@@ -57,6 +57,6 @@ func (a *Simple) Result(errMsg string) (r string) {
 	if len(errMsg) > 0 {
 		status = "0"
 	}
-	r = `{"Status":` + status + `,"Message":"` + errMsg + `","Data":{"Url":"` + a.Data.FileUrl + `","Id":"` + a.Data.FileIdString() + `"}}`
+	r = `{"Status":` + status + `,"Message":"` + errMsg + `","Data":{"Url":"` + a.Data.FileURL + `","Id":"` + a.Data.FileIdString() + `"}}`
 	return
 }

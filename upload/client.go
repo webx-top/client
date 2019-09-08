@@ -26,15 +26,15 @@ import (
 )
 
 type Result struct {
-	FileId   int64
+	FileID   int64
 	FileName string
-	FileUrl  string
+	FileURL  string
 	FileType FileType
 	Addon    interface{}
 }
 
 func (r *Result) FileIdString() string {
-	return fmt.Sprintf(`%d`, r.FileId)
+	return fmt.Sprintf(`%d`, r.FileID)
 }
 
 func New() *BaseClient {
@@ -68,7 +68,7 @@ func (a *BaseClient) Result(errMsg string) (r string) {
 	if errMsg != "" {
 		status = "0"
 	}
-	r = `{"Status":` + status + `,"Message":"` + errMsg + `","Data":{"Url":"` + a.Data.FileUrl + `","Id":"` + a.Data.FileIdString() + `"}}`
+	r = `{"Code":` + status + `,"Info":"` + errMsg + `","Data":{"Url":"` + a.Data.FileURL + `","Id":"` + a.Data.FileIdString() + `"}}`
 	return
 }
 

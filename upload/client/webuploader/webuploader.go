@@ -63,11 +63,11 @@ func (a *Webuploader) Result(errMsg string) (r string) {
 		}
 	}
 	if len(errMsg) == 0 {
-		r = `{"jsonrpc":"2.0","result":{"url":"` + a.Data.FileUrl + `","id":"` + a.Data.FileIdString() + `","containerid":"` + cid + `"},"error":null}`
+		r = `{"jsonrpc":"2.0","result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `","containerid":"` + cid + `"},"error":null}`
 		return
 	}
 	code := "100"
-	r = `{"jsonrpc":"2.0","result":{"url":"` + a.Data.FileUrl + `","id":"` + a.Data.FileIdString() + `","containerid":"` + cid + `"},"error":{"code":"` + code + `","message":"` + errMsg + `"}}`
+	r = `{"jsonrpc":"2.0","result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `","containerid":"` + cid + `"},"error":{"code":"` + code + `","message":"` + errMsg + `"}}`
 
 	return
 }
