@@ -21,7 +21,8 @@ package upload
 var FileTypeExts = map[string][]string{
 	`image`:     []string{`jpeg`, `jpg`, `gif`, `png`},
 	`flash`:     []string{`swf`},
-	`media`:     []string{`mp3`, `mp4`, `mp5`, `flv`, `mpg`, `mkv`, `mid`, `rmvb`, `avi`, `rm`, `asf`, `divx`, `mpeg`, `mpe`, `wmv`, `mkv`, `vob`, `3gp`, `mov`},
+	`audio`:     []string{`mp3`, `mid`},
+	`video`:     []string{`mp4`, `mp5`, `flv`, `mpg`, `mkv`, `rmvb`, `avi`, `rm`, `asf`, `divx`, `mpeg`, `mpe`, `wmv`, `mkv`, `vob`, `3gp`, `mov`},
 	`archive`:   []string{`zip`, `7z`, `rar`, `tar`, `gz`},
 	`office`:    []string{`xls`, `doc`, `docx`, `ppt`, `pptx`, `et`, `wps`, `rtf`, `dps`},
 	`bt`:        []string{`torrent`},
@@ -58,9 +59,14 @@ func (f FileType) ExtNames() (r []string) {
 }
 
 const (
-	TypeImage FileType = `image`
-	TypeFlash FileType = `flash`
-	TypeMedia FileType = `media`
+	TypeImage     FileType = `image`
+	TypeFlash     FileType = `flash`
+	TypeAudio     FileType = `audio`
+	TypeVideo     FileType = `video`
+	TypeArchive   FileType = `archive`
+	TypeOffice    FileType = `office`
+	TypeBT        FileType = `bt`
+	TypePhotoshop FileType = `photoshop`
 )
 
 func init() {

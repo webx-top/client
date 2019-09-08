@@ -15,6 +15,7 @@
    limitations under the License.
 
 */
+
 package upload
 
 var clients = make(map[string]func() Client)
