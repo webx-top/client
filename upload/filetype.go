@@ -15,9 +15,10 @@
    limitations under the License.
 
 */
+
 package upload
 
-var FileTypeExts map[string][]string = map[string][]string{
+var FileTypeExts = map[string][]string{
 	`image`:     []string{`jpeg`, `jpg`, `gif`, `png`},
 	`flash`:     []string{`swf`},
 	`media`:     []string{`mp3`, `mp4`, `mp5`, `flv`, `mpg`, `mkv`, `mid`, `rmvb`, `avi`, `rm`, `asf`, `divx`, `mpeg`, `mpe`, `wmv`, `mkv`, `vob`, `3gp`, `mov`},
@@ -38,7 +39,7 @@ func InitFileTypes() {
 }
 
 func GetType(extName string) string {
-	if extName != `` && extName[0] == '.' {
+	if len(extName) > 0 && extName[0] == '.' {
 		extName = extName[1:]
 	}
 	if v, ok := fileTypes[extName]; ok {

@@ -15,12 +15,13 @@
    limitations under the License.
 
 */
+
 package list
 
 var clients = make(map[string]func() Client)
 var defaults = New()
 
-func Reg(name string, c func() Client) {
+func Register(name string, c func() Client) {
 	clients[name] = c
 }
 
@@ -39,7 +40,7 @@ func Has(name string) bool {
 	return ok
 }
 
-func Del(name string) {
+func Delete(name string) {
 	if _, ok := clients[name]; ok {
 		delete(clients, name)
 	}

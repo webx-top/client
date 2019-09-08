@@ -15,15 +15,16 @@
    limitations under the License.
 
 */
+
 package editable
 
 import (
-	X "github.com/webx-top/webx"
-	editClient "github.com/webx-top/webx/lib/client/edit"
+	editClient "github.com/webx-top/client/edit"
+	"github.com/webx-top/echo"
 )
 
 func init() {
-	editClient.Reg(`editable`, func() editClient.Client {
+	editClient.Register(`editable`, func() editClient.Client {
 		return New()
 	})
 }
@@ -38,7 +39,7 @@ type Editable struct {
 	*editClient.BaseClient
 }
 
-func (a *Editable) Init(ctx *X.Context, m interface{}) editClient.Client {
+func (a *Editable) Init(ctx echo.Context, m interface{}) editClient.Client {
 	a.Context = ctx
 	a.Model = m
 	a.StructField = ctx.Form(`name`)

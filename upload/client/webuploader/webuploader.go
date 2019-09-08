@@ -15,16 +15,17 @@
    limitations under the License.
 
 */
+
 package webuploader
 
 import (
 	"io"
 
-	uploadClient "github.com/webx-top/webx/lib/client/upload"
+	uploadClient "github.com/webx-top/client/upload"
 )
 
 func init() {
-	uploadClient.Reg(`webuploader`, func() uploadClient.Client {
+	uploadClient.Register(`webuploader`, func() uploadClient.Client {
 		return New()
 	})
 }
@@ -52,9 +53,9 @@ func (a *Webuploader) Body() (file io.ReadCloser, err error) {
 }
 
 func (a *Webuploader) Result(errMsg string) (r string) {
-	cid := a.Context.Form("id")
+	cid := a.Form("id")
 	if len(cid) == 0 {
-		form := a.Context.Request().MultipartForm()
+		form := a.Request().MultipartForm()
 		if form != nil && form.Value != nil {
 			if v, ok := form.Value["id"]; ok && len(v) > 0 {
 				cid = v[0]

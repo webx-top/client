@@ -24,20 +24,20 @@ import (
 	"strings"
 
 	"github.com/admpub/nging/application/library/common"
+	listClient "github.com/webx-top/client/list"
 	"github.com/webx-top/com"
 	"github.com/webx-top/db"
 	"github.com/webx-top/db/lib/factory"
 	"github.com/webx-top/db/lib/factory/mysql"
 	"github.com/webx-top/db/lib/reflectx"
 	"github.com/webx-top/db/lib/sqlbuilder"
-	X "github.com/webx-top/webx"
-	listClient "github.com/webx-top/webx/lib/client/list"
+	"github.com/webx-top/echo"
 	"github.com/webx-top/webx/lib/database"
 )
 
 func init() {
 	_ = fmt.Sprint
-	listClient.Reg(`dataTable`, func() listClient.Client {
+	listClient.Register(`dataTable`, func() listClient.Client {
 		return New()
 	})
 }
@@ -123,7 +123,7 @@ type fieldInfo struct {
 	Sort  string
 }
 
-func (a *DataTable) Init(c *X.Context, ls *common.List) listClient.Client {
+func (a *DataTable) Init(c echo.Context, ls *common.List) listClient.Client {
 	a.BaseClient.Init(c, ls)
 	a.tableFields = make([]string, 0)
 	a.searches = []*Item{}

@@ -15,16 +15,17 @@
    limitations under the License.
 
 */
+
 package simple
 
 import (
 	"io"
 
-	uploadClient "github.com/webx-top/webx/lib/client/upload"
+	uploadClient "github.com/webx-top/client/upload"
 )
 
 func init() {
-	uploadClient.Reg(`simple`, func() uploadClient.Client {
+	uploadClient.Register(`simple`, func() uploadClient.Client {
 		return New()
 	})
 }

@@ -15,13 +15,14 @@
    limitations under the License.
 
 */
+
 package list
 
 import (
 	"github.com/admpub/nging/application/library/common"
 	"github.com/webx-top/db"
 	"github.com/webx-top/db/lib/reflectx"
-	X "github.com/webx-top/webx"
+	"github.com/webx-top/echo"
 )
 
 func New() *BaseClient {
@@ -29,13 +30,13 @@ func New() *BaseClient {
 }
 
 type BaseClient struct {
-	*X.Context
+	echo.Context
 	List       *common.List
 	SearchPK   bool
 	Middleware func(r db.Result) db.Result
 }
 
-func (a *BaseClient) Init(ctx *X.Context, ls *common.List) Client {
+func (a *BaseClient) Init(ctx echo.Context, ls *common.List) Client {
 	a.Context = ctx
 	a.List = ls
 	return a
@@ -51,9 +52,11 @@ func (a *BaseClient) Apply(args ...string) error {
 	a.List.AddMiddleware(a.Middleware)
 	r, err := a.List.DataTable(a.Context)
 	if len(args) > 0 {
-		a.Context.Assign(args[0], r)
+		a.Set(args[0], r)
 	} else {
-		a.Context.AssignX(&r)
+		for k, v := range r {
+			a.Set(k, v)
+		}
 	}
 	return err
 }
@@ -63,7 +66,7 @@ func (a *BaseClient) Sorts(...func(*reflectx.FieldInfo, string) string) []interf
 	return []interface{}{}
 }
 
-//UsePK 是否自动搜索主键字段
+//PrimaryKey 是否自动搜索主键字段
 func (a *BaseClient) PrimaryKey(on bool) Client {
 	a.SearchPK = on
 	return a
@@ -77,7 +80,7 @@ func (a *BaseClient) Build(defaultFields ...string) *db.Compounds {
 //Client 客户端接口
 type Client interface {
 	//初始化数据
-	Init(*X.Context, *common.List) Client
+	Init(echo.Context, *common.List) Client
 
 	//结果数据
 	Apply(...string) error

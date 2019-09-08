@@ -15,6 +15,7 @@
    limitations under the License.
 
 */
+
 package upload
 
 import (
@@ -38,18 +39,6 @@ type Sizer interface {
 
 func Receive(name string, ctx echo.Context) (f io.ReadCloser, fileName string, err error) {
 	switch ctx.ResolveContentType() {
-	/*
-		case "multipart/form-data":
-			form := ctx.Request().MultipartForm()
-			if form != nil && form.File != nil {
-				if v, ok := form.File[name]; ok && len(v) > 0 {
-					r := v[0]
-					fileName = r.Filename
-					f, err = r.Open()
-					return
-				}
-			}
-	*/
 	case "application/octet-stream":
 		val := ctx.Request().Header().Get("Content-Disposition")
 		if len(val) == 0 {
@@ -78,5 +67,4 @@ func Receive(name string, ctx echo.Context) (f io.ReadCloser, fileName string, e
 		fileName = header.Filename
 		return
 	}
-	return
 }

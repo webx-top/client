@@ -15,17 +15,18 @@
    limitations under the License.
 
 */
+
 package xheditor
 
 import (
 	"io"
 	"net/url"
 
-	uploadClient "github.com/webx-top/webx/lib/client/upload"
+	uploadClient "github.com/webx-top/client/upload"
 )
 
 func init() {
-	uploadClient.Reg(`xheditor`, func() uploadClient.Client {
+	uploadClient.Register(`xheditor`, func() uploadClient.Client {
 		return New()
 	})
 }
@@ -54,7 +55,7 @@ func (a *XhEditor) Body() (file io.ReadCloser, err error) {
 
 func (a *XhEditor) Result(errMsg string) (r string) {
 	var msg, publicURL string
-	if a.Context.Form("immediate") == "1" {
+	if a.Form("immediate") == "1" {
 		publicURL = "!" + a.Data.FileUrl
 	} else {
 		publicURL = a.Data.FileUrl
@@ -67,7 +68,7 @@ func (a *XhEditor) Result(errMsg string) (r string) {
 	default:
 		msg = `{"url":"` + publicURL + `","id":"` + a.Data.FileIdString() + `"}`
 	}
-	if msg == "" {
+	if len(msg) == 0 {
 		msg = "{}"
 	}
 	r = `{"err":"` + errMsg + `","msg":` + msg + `}`

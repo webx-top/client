@@ -15,6 +15,7 @@
    limitations under the License.
 
 */
+
 package markdown
 
 import (
@@ -23,11 +24,11 @@ import (
 	"net/url"
 	"time"
 
-	uploadClient "github.com/webx-top/webx/lib/client/upload"
+	uploadClient "github.com/webx-top/client/upload"
 )
 
 func init() {
-	uploadClient.Reg(`markdown`, func() uploadClient.Client {
+	uploadClient.Register(`markdown`, func() uploadClient.Client {
 		return New()
 	})
 }
@@ -59,12 +60,12 @@ func (a *Markdown) Result(errMsg string) (r string) {
 	if len(errMsg) > 0 {
 		succed = "1"
 	}
-	callback := a.Context.Form(`callback`)
-	dialogID := a.Context.Form(`dialog_id`)
+	callback := a.Form(`callback`)
+	dialogID := a.Form(`dialog_id`)
 	if len(callback) > 0 && len(dialogID) > 0 {
 		//跨域上传返回操作
 		nextURL := callback + "?dialog_id=" + dialogID + "&temp=" + time.Now().String() + "&success=" + succed + "&message=" + url.QueryEscape(errMsg) + "&url=" + a.Data.FileUrl
-		a.Context.Redirect(nextURL)
+		a.Redirect(nextURL)
 	} else {
 		r = `{"success":` + succed + `,"message":"` + errMsg + `","url":"` + a.Data.FileUrl + `","id":"` + a.Data.FileIdString() + `"}`
 	}

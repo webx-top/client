@@ -15,13 +15,14 @@
    limitations under the License.
 
 */
+
 package edit
 
 import (
 	"errors"
 
 	"github.com/webx-top/db/lib/sqlbuilder"
-	X "github.com/webx-top/webx"
+	"github.com/webx-top/echo"
 )
 
 func New() *BaseClient {
@@ -29,7 +30,7 @@ func New() *BaseClient {
 }
 
 type BaseClient struct {
-	*X.Context
+	echo.Context
 	Model       interface{}
 	StructField string
 	TableField  string
@@ -37,7 +38,7 @@ type BaseClient struct {
 	Primary     string
 }
 
-func (a *BaseClient) Init(ctx *X.Context, m interface{}) Client {
+func (a *BaseClient) Init(ctx echo.Context, m interface{}) Client {
 	a.Context = ctx
 	a.Model = m
 	a.StructField = ctx.Form(`field`)
@@ -67,7 +68,6 @@ func (a *BaseClient) Do(fn func(string, string, string) error, validField ...boo
 }
 
 type Client interface {
-	//初始化
-	Init(*X.Context, interface{}) Client
+	Init(echo.Context, interface{}) Client
 	Do(func(string, string, string) error, ...bool) error
 }
