@@ -62,6 +62,7 @@ type BaseClient struct {
 	Data *Result
 	echo.Context
 	Object Client
+	err    error
 }
 
 func (a *BaseClient) Init(ctx echo.Context, res *Result) {
@@ -73,6 +74,22 @@ func (a *BaseClient) Name() string {
 	return "filedata"
 }
 
+func (a *BaseClient) SetError(err error) Client {
+	a.err = err
+	return a
+}
+
+func (a *BaseClient) GetError() error {
+	return a.err
+}
+
+func (a *BaseClient) Error() string {
+	if a.err != nil {
+		return a.err.Error()
+	}
+	return ``
+}
+
 func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 	file, a.Data.FileName, err = Receive(a.Name(), a.Context)
 	if err != nil {
@@ -82,21 +99,21 @@ func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 	return
 }
 
-func (a *BaseClient) Result(errMsg string) (r string) {
+func (a *BaseClient) Result() (r string) {
 	status := "1"
-	if len(errMsg) > 0 {
+	if a.err != nil {
 		status = "0"
 	}
-	r = `{"Code":` + status + `,"Info":"` + errMsg + `","Data":{"Url":"` + a.Data.FileURL + `","Id":"` + a.Data.FileIdString() + `"}}`
+	r = `{"Code":` + status + `,"Info":"` + a.err.Error() + `","Data":{"Url":"` + a.Data.FileURL + `","Id":"` + a.Data.FileIdString() + `"}}`
 	return
 }
 
-func (a *BaseClient) Response(errMsg string) error {
+func (a *BaseClient) Response() error {
 	var result string
 	if a.Object != nil {
-		result = a.Object.Result(errMsg)
+		result = a.Object.Result()
 	} else {
-		result = a.Result(errMsg)
+		result = a.Result()
 	}
 	return a.JSONBlob(engine.Str2bytes(result))
 }
@@ -104,6 +121,9 @@ func (a *BaseClient) Response(errMsg string) error {
 type Client interface {
 	//初始化
 	Init(echo.Context, *Result)
+	SetError(err error) Client
+	GetError() error
+	Error() string
 
 	//file表单域name属性值
 	Name() string
@@ -112,7 +132,7 @@ type Client interface {
 	Body() (ReadCloserWithSize, error)
 
 	//返回结果
-	Result(string) string
+	Result() string
 
-	Response(string) error
+	Response() error
 }
