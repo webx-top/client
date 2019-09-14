@@ -33,6 +33,7 @@ type Result struct {
 	FileURL           string
 	FileType          FileType
 	FileSize          int64
+	SavePath          string
 	Addon             interface{}
 	distFileGenerator func(string) (string, error)
 }

@@ -53,7 +53,7 @@ func Delete(name string) {
 }
 
 type Storer interface {
-	Put(dstFile string, body io.Reader, size int64) (fileURL string, err error)
+	Put(dstFile string, body io.Reader, size int64) (savePath string, fileURL string, err error)
 }
 
 func Upload(ctx echo.Context, clientName string, result *Result, storer Storer) error {
@@ -68,7 +68,7 @@ func Upload(ctx echo.Context, clientName string, result *Result, storer Storer) 
 	if err != nil {
 		return client.Response(err.Error())
 	}
-	result.FileURL, err = storer.Put(dstFile, body, body.Size())
+	result.SavePath, result.FileURL, err = storer.Put(dstFile, body, body.Size())
 	if err != nil {
 		return client.Response(err.Error())
 	}
