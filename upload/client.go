@@ -27,6 +27,16 @@ import (
 	"github.com/webx-top/echo/engine"
 )
 
+type Results []*Result
+
+func (r Results) FileURLs() (rs []string) {
+	rs = make([]string, len(r))
+	for k, v := range r {
+		rs[k] = v.FileURL
+	}
+	return rs
+}
+
 type Result struct {
 	FileID            int64
 	FileName          string
