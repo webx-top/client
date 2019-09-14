@@ -37,6 +37,10 @@ func (r Results) FileURLs() (rs []string) {
 	return rs
 }
 
+func (r *Results) Add(result *Result) {
+	*r = append(*r, result)
+}
+
 type Result struct {
 	FileID            int64
 	FileName          string
