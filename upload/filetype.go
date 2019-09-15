@@ -22,7 +22,7 @@ import "strings"
 
 type FileType string
 
-func (f FileType) ExtNames() (r []string) {
+func (f FileType) Extensions() (r []string) {
 	if v, ok := FileTypeExts[f]; ok {
 		r = v
 	}
@@ -75,12 +75,12 @@ func InitFileTypes() {
 	}
 }
 
-func DetectType(extName string) string {
-	if len(extName) > 0 && extName[0] == '.' {
-		extName = extName[1:]
+func DetectType(extension string) string {
+	if len(extension) > 0 && extension[0] == '.' {
+		extension = extension[1:]
 	}
-	extName = strings.ToLower(extName)
-	if v, ok := fileTypes[extName]; ok {
+	extension = strings.ToLower(extension)
+	if v, ok := fileTypes[extension]; ok {
 		return v.String()
 	}
 	return `file`
