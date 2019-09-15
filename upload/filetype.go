@@ -55,12 +55,22 @@ var FileTypeExts = map[FileType][]string{
 	TypePhotoshop: []string{`psd`},
 }
 
+func AddFileType(fileType FileType, extensions ...string) {
+	if _, y := FileTypeExts[fileType]; !y {
+		FileTypeExts[fileType] = []string{}
+	}
+	FileTypeExts[fileType] = append(FileTypeExts[fileType], extensions...)
+	for _, extension := range extensions {
+		fileTypes[extension] = fileType
+	}
+}
+
 var fileTypes = map[string]FileType{}
 
 func InitFileTypes() {
-	for typ, exts := range FileTypeExts {
-		for _, ext := range exts {
-			fileTypes[ext] = typ
+	for fileType, extensions := range FileTypeExts {
+		for _, extension := range extensions {
+			fileTypes[extension] = fileType
 		}
 	}
 }
