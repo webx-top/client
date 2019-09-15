@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/admpub/checksum"
 	"github.com/webx-top/echo"
 	"github.com/webx-top/echo/engine"
 )
@@ -48,6 +49,7 @@ type Result struct {
 	FileType          FileType
 	FileSize          int64
 	SavePath          string
+	Md5               string
 	Addon             interface{}
 	distFileGenerator func(string) (string, error)
 }
@@ -110,6 +112,7 @@ func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 		return
 	}
 	a.Data.FileSize = file.Size()
+	a.Data.Md5, _ = checksum.MD5sumReader(file)
 	return
 }
 
