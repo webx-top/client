@@ -51,19 +51,19 @@ type Result struct {
 	SavePath          string
 	Md5               string
 	Addon             interface{}
-	distFileGenerator func(string) (string, error)
+	fileNameGenerator func(string) (string, error)
 }
 
-func (r *Result) SetDistFileGenerator(generator func(string) (string, error)) *Result {
-	r.distFileGenerator = generator
+func (r *Result) SetFileNameGenerator(generator func(string) (string, error)) *Result {
+	r.fileNameGenerator = generator
 	return r
 }
 
-func (r *Result) DistFile() (string, error) {
-	if r.distFileGenerator == nil {
+func (r *Result) GenFileName() (string, error) {
+	if r.fileNameGenerator == nil {
 		return filepath.Join(time.Now().Format("2006/0102"), r.FileName), nil
 	}
-	return r.distFileGenerator(r.FileName)
+	return r.fileNameGenerator(r.FileName)
 }
 
 func (r *Result) FileIdString() string {
@@ -112,7 +112,7 @@ func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 		return
 	}
 	a.Data.FileSize = file.Size()
-	a.Data.Md5, _ = checksum.MD5sumReader(file)
+	a.Data.Md5, err = checksum.MD5sumReader(file)
 	return
 }
 
