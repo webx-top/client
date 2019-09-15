@@ -64,7 +64,7 @@ func Upload(ctx echo.Context, clientName string, result *Result, storer Storer) 
 		return client.SetError(err)
 	}
 	defer body.Close()
-	dstFile, err := result.DistFile()
+	dstFile, err := result.GenFileName()
 	if err != nil {
 		return client.SetError(err)
 	}
