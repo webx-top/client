@@ -20,6 +20,7 @@ package upload
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 	"time"
 
@@ -113,6 +114,9 @@ func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 	}
 	a.Data.FileSize = file.Size()
 	a.Data.Md5, err = checksum.MD5sumReader(file)
+	if v, y := file.(io.ReadSeeker); y {
+		v.Seek(0, 0)
+	}
 	return
 }
 
