@@ -59,6 +59,10 @@ func (w *wrapSizer) Size() int64 {
 	return w.sizer.Size()
 }
 
+func (w *wrapSizer) Seek(offset int64, whence int) (int64, error) {
+	return w.ReadCloser.(io.Seeker).Seek(offset, whence)
+}
+
 type wrapSize struct {
 	size int64
 	io.ReadCloser
@@ -66,6 +70,10 @@ type wrapSize struct {
 
 func (w *wrapSize) Size() int64 {
 	return w.size
+}
+
+func (w *wrapSize) Seek(offset int64, whence int) (int64, error) {
+	return w.ReadCloser.(io.Seeker).Seek(offset, whence)
 }
 
 func Receive(name string, ctx echo.Context) (f ReadCloserWithSize, fileName string, err error) {
