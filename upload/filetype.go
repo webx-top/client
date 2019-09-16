@@ -110,6 +110,10 @@ func TypeRegister(fileType FileType, extensions ...string) {
 		FileTypeExts[fileType] = []string{}
 	}
 	for _, extension := range extensions {
+		if len(extension) > 0 && extension[0] == '.' {
+			extension = extension[1:]
+		}
+		extension = strings.ToLower(extension)
 		if _, ok := fileTypes[extension]; ok {
 			continue
 		}
