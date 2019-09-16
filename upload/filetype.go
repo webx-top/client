@@ -19,6 +19,7 @@
 package upload
 
 import (
+	"mime"
 	"strings"
 
 	"github.com/webx-top/com"
@@ -67,6 +68,18 @@ var (
 		`xls`:     `file-o`,
 		`ppt`:     `file-o`,
 		`doc`:     `file-text-o`,
+	}
+
+	// FileTypeMimeKeywords 文件类型对应mime关键词
+	FileTypeMimeKeywords = map[string][]string{
+		`image`:   []string{`image`},
+		`video`:   []string{`video`},
+		`audio`:   []string{`audio`},
+		`archive`: []string{`compressed`},
+		`pdf`:     []string{`pdf`},
+		`xls`:     []string{`csv`, `excel`},
+		`ppt`:     []string{`powerpoint`},
+		`doc`:     []string{`msword`, `text`},
 	}
 
 	// FileTypeExts 文件类型对应扩展名(不含".")
@@ -125,6 +138,15 @@ func DetectType(extension string) string {
 	extension = strings.ToLower(extension)
 	if v, ok := fileTypes[extension]; ok {
 		return v.String()
+	}
+	mimeType := mime.TypeByExtension(`.` + extension)
+	mimeType = strings.SplitN(mimeType, ";", 2)[0]
+	for typeK, keywords := range FileTypeMimeKeywords {
+		for _, words := range keywords {
+			if strings.Contains(mimeType, words) {
+				return typeK
+			}
+		}
 	}
 	return `file`
 }
