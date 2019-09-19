@@ -57,6 +57,7 @@ const (
 	TypeBT        FileType = `bt`
 	TypePhotoshop FileType = `photoshop`
 	TypePDF       FileType = `pdf`
+	TypeFile      FileType = `file`
 )
 
 var (
