@@ -32,18 +32,16 @@ func init() {
 	})
 }
 
+var FormField = `editormd-image-file`
+
 func New() uploadClient.Client {
 	client := &Markdown{}
-	client.BaseClient = uploadClient.New(client)
+	client.BaseClient = uploadClient.New(client, FormField)
 	return client
 }
 
 type Markdown struct {
 	*uploadClient.BaseClient
-}
-
-func (a *Markdown) Name() string {
-	return "editormd-image-file"
 }
 
 func (a *Markdown) Result() (r string) {

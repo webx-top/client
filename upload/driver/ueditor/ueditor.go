@@ -33,18 +33,16 @@ func init() {
 	})
 }
 
+var FormField = `upfile`
+
 func New() uploadClient.Client {
 	client := &UEditor{}
-	client.BaseClient = uploadClient.New(client)
+	client.BaseClient = uploadClient.New(client, FormField)
 	return client
 }
 
 type UEditor struct {
 	*uploadClient.BaseClient
-}
-
-func (a *UEditor) Name() string {
-	return "upfile"
 }
 
 var callbackNameRegExp = regexp.MustCompile(`^[\w_]+$`)

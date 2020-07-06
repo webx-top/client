@@ -31,18 +31,16 @@ func init() {
 	})
 }
 
+var FormField = `file[]`
+
 func New() uploadClient.Client {
 	client := &Vditor{}
-	client.BaseClient = uploadClient.New(client)
+	client.BaseClient = uploadClient.New(client, FormField)
 	return client
 }
 
 type Vditor struct {
 	*uploadClient.BaseClient
-}
-
-func (a *Vditor) Name() string {
-	return "file[]"
 }
 
 type Response struct {
