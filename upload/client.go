@@ -85,6 +85,7 @@ type BaseClient struct {
 	echo.Context
 	Object    Client
 	FormField string // 表单文件字段名
+	Code      int    // HTTP code
 	err       error
 }
 
@@ -143,6 +144,9 @@ func (a *BaseClient) Response() error {
 		result = a.Object.Result()
 	} else {
 		result = a.Result()
+	}
+	if a.Code > 0 {
+		return a.JSONBlob(engine.Str2bytes(result), a.Code)
 	}
 	return a.JSONBlob(engine.Str2bytes(result))
 }

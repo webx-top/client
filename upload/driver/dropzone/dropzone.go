@@ -19,6 +19,8 @@
 package dropzone
 
 import (
+	"net/http"
+
 	uploadClient "github.com/webx-top/client/upload"
 )
 
@@ -42,10 +44,10 @@ type Dropzone struct {
 
 func (a *Dropzone) Result() (r string) {
 	if a.GetError() == nil {
+		a.Code = http.StatusInternalServerError
 		r = `{"result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `"},"error":null}`
 		return
 	}
 	r = `{"result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `"},"error":"` + a.Error() + `"}`
-
 	return
 }
