@@ -44,10 +44,11 @@ type Dropzone struct {
 
 func (a *Dropzone) Result() (r string) {
 	if a.GetError() == nil {
-		a.Code = http.StatusInternalServerError
 		r = `{"result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `"},"error":null}`
-		return
+	} else {
+		a.Code = http.StatusInternalServerError
+		a.ContentType = `string`
+		r = a.Error()
 	}
-	r = `{"result":{"url":"` + a.Data.FileURL + `","id":"` + a.Data.FileIdString() + `"},"error":"` + a.Error() + `"}`
 	return
 }
