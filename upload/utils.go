@@ -52,7 +52,7 @@ func OptChecker(checker func(*Result) error) OptionsSetter {
 	}
 }
 
-func OptCallback(callback func(*Result, io.Reader) error) OptionsSetter {
+func OptCallback(callback func(*Result, io.Reader, io.Reader) error) OptionsSetter {
 	return func(options *Options) {
 		options.Callback = callback
 	}
