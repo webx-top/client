@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"path"
@@ -63,6 +62,16 @@ type ReaderAndSizer interface {
 	Sizer
 }
 
+func CopyBody(body ReadCloserWithSize) (oldBody []byte, newBody ReadCloserWithSize, err error) {
+	oldBody, err = ioutil.ReadAll(body)
+	if err != nil {
+		return
+	}
+	body.Close()
+	newBody = WrapFileWithSize(body.Size(), watermark.Bytes2file(oldBody))
+	return
+}
+
 func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 	options := &Options{}
 	for _, opt := range opts {
@@ -91,7 +100,7 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 	if options.Result.FileType.String() == `image` {
 		if options.WatermarkOptions != nil && options.WatermarkOptions.IsEnabled() {
 			var b []byte
-			b, err = ioutil.ReadAll(body)
+			b, body, err = CopyBody(body)
 			if err != nil {
 				return client.SetError(err)
 			}
@@ -99,8 +108,14 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 			if err != nil {
 				return client.SetError(err)
 			}
-			byteReader := bytes.NewReader(b)
-			readerAndSizer = byteReader
+			readerAndSizer = WrapFileWithSize(int64(len(b)), watermark.Bytes2file(b))
+		} else {
+			if _, ok := body.(io.Seeker); !ok {
+				_, body, err = CopyBody(body)
+				if err != nil {
+					return client.SetError(err)
+				}
+			}
 		}
 	}
 	options.Result.SavePath, options.Result.FileURL, err = options.Storer.Put(dstFile, readerAndSizer, readerAndSizer.Size())
@@ -108,6 +123,12 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 		return client.SetError(err)
 	}
 	if options.Callback != nil {
+		if seek, ok := body.(io.Seeker); ok {
+			seek.Seek(0, 0)
+		}
+		if seek, ok := readerAndSizer.(io.Seeker); ok {
+			seek.Seek(0, 0)
+		}
 		err = options.Callback(options.Result, body, readerAndSizer)
 		if err != nil {
 			options.Storer.Delete(dstFile)
