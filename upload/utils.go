@@ -109,7 +109,7 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 				return client.SetError(err)
 			}
 			readerAndSizer = WrapFileWithSize(int64(len(b)), watermark.Bytes2file(b))
-		} else {
+		} else if options.Callback != nil {
 			if _, ok := body.(io.Seeker); !ok {
 				_, body, err = CopyBody(body)
 				if err != nil {
