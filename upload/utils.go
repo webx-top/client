@@ -17,7 +17,7 @@ type Options struct {
 	Storer           Storer
 	WatermarkOptions *image.WatermarkOptions
 	Checker          func(*Result) error
-	Callback         func(*Result, io.Reader) error
+	Callback         func(*Result, io.Reader, io.Reader) error
 }
 
 type OptionsSetter func(options *Options)
@@ -108,7 +108,7 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 		return client.SetError(err)
 	}
 	if options.Callback != nil {
-		err = options.Callback(options.Result, body)
+		err = options.Callback(options.Result, body, readerAndSizer)
 		if err != nil {
 			options.Storer.Delete(dstFile)
 			return client.SetError(err)
