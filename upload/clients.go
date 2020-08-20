@@ -52,4 +52,5 @@ func Delete(name string) {
 
 type Storer interface {
 	Put(dstFile string, body io.Reader, size int64) (savePath string, fileURL string, err error)
+	Delete(file string) error
 }
