@@ -108,7 +108,7 @@ func Upload(ctx echo.Context, opts ...OptionsSetter) Client {
 		return client.SetError(err)
 	}
 	if options.Callback != nil {
-		err = options.Callback(options.Result, readerAndSizer)
+		err = options.Callback(options.Result, body)
 		if err != nil {
 			options.Storer.Delete(dstFile)
 			return client.SetError(err)
