@@ -34,7 +34,7 @@ func OptResult(result *Result) OptionsSetter {
 	}
 }
 
-func OptSetStorer(storer Storer) OptionsSetter {
+func OptStorer(storer Storer) OptionsSetter {
 	return func(options *Options) {
 		options.Storer = storer
 	}
@@ -46,7 +46,7 @@ func OptWatermarkOptions(wmOpt *image.WatermarkOptions) OptionsSetter {
 	}
 }
 
-func OptCheckers(checker func(*Result) error) OptionsSetter {
+func OptChecker(checker func(*Result) error) OptionsSetter {
 	return func(options *Options) {
 		options.Checker = checker
 	}
