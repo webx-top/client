@@ -41,7 +41,7 @@ type Webuploader struct {
 	*uploadClient.BaseClient
 }
 
-func (a *Webuploader) BuildResult() {
+func (a *Webuploader) BuildResult() uploadClient.Client {
 	cid := a.Form("id")
 	if len(cid) == 0 {
 		form := a.Request().MultipartForm()
@@ -67,4 +67,5 @@ func (a *Webuploader) BuildResult() {
 		}
 	}
 	a.RespData = data
+	return a
 }

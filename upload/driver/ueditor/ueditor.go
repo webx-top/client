@@ -46,7 +46,7 @@ type UEditor struct {
 
 var callbackNameRegExp = regexp.MustCompile(`^[\w_]+$`)
 
-func (a *UEditor) BuildResult() {
+func (a *UEditor) BuildResult() uploadClient.Client {
 	var publicURL string
 	if a.Form("immediate") == "1" {
 		publicURL = "!" + a.Data.FileURL
@@ -65,4 +65,5 @@ func (a *UEditor) BuildResult() {
 	if len(callback) > 0 && callbackNameRegExp.MatchString(callback) {
 		a.JSONPVarName = callback
 	}
+	return a
 }

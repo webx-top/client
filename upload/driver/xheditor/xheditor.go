@@ -43,7 +43,7 @@ type XhEditor struct {
 	*uploadClient.BaseClient
 }
 
-func (a *XhEditor) BuildResult() {
+func (a *XhEditor) BuildResult() uploadClient.Client {
 	var publicURL string
 	if a.Form("immediate") == "1" {
 		publicURL = "!" + a.Data.FileURL
@@ -72,4 +72,5 @@ func (a *XhEditor) BuildResult() {
 		`err`: errMsg,
 		`msg`: data,
 	}
+	return a
 }

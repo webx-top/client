@@ -43,7 +43,7 @@ type Dropzone struct {
 	*uploadClient.BaseClient
 }
 
-func (a *Dropzone) BuildResult() {
+func (a *Dropzone) BuildResult() uploadClient.Client {
 	if a.GetError() == nil {
 		a.RespData = echo.H{
 			`result`: echo.H{
@@ -57,4 +57,5 @@ func (a *Dropzone) BuildResult() {
 		a.ContentType = `string`
 		a.RespData = a.Error()
 	}
+	return a
 }

@@ -41,7 +41,7 @@ type Simple struct {
 	*uploadClient.BaseClient
 }
 
-func (a *Simple) BuildResult() {
+func (a *Simple) BuildResult() uploadClient.Client {
 	status := 1
 	var errMsg string
 	if a.GetError() != nil {
@@ -56,4 +56,5 @@ func (a *Simple) BuildResult() {
 			`Id`:  a.Data.FileIdString(),
 		},
 	}
+	return a
 }

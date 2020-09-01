@@ -46,7 +46,7 @@ type Markdown struct {
 	*uploadClient.BaseClient
 }
 
-func (a *Markdown) BuildResult() {
+func (a *Markdown) BuildResult() uploadClient.Client {
 	succed := 1 // 0 表示上传失败，1 表示上传成功
 	if a.GetError() != nil {
 		succed = 0
@@ -66,4 +66,5 @@ func (a *Markdown) BuildResult() {
 			`id`:      a.Data.FileIdString(),
 		}
 	}
+	return a
 }

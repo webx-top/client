@@ -130,7 +130,7 @@ func (a *BaseClient) Body() (file ReadCloserWithSize, err error) {
 	return
 }
 
-func (a *BaseClient) BuildResult() {
+func (a *BaseClient) BuildResult() Client {
 	data := a.Context.Data()
 	data.SetData(echo.H{
 		`Url`: a.Data.FileURL,
@@ -140,7 +140,16 @@ func (a *BaseClient) BuildResult() {
 		data.SetError(a.err)
 	}
 	a.RespData = data
-	return
+	return a
+}
+
+func (a *BaseClient) GetRespData() interface{} {
+	return a.RespData
+}
+
+func (a *BaseClient) SetRespData(data interface{}) Client {
+	a.RespData = data
+	return a
 }
 
 func (a *BaseClient) Response() error {
@@ -171,6 +180,7 @@ func (a *BaseClient) responseContentType(code int) error {
 	}
 }
 
+// Client 上次客户端处理接口
 type Client interface {
 	//初始化
 	Init(echo.Context, *Result)
@@ -185,7 +195,10 @@ type Client interface {
 	Body() (ReadCloserWithSize, error)
 
 	//构建结果
-	BuildResult()
+	BuildResult() Client
+
+	GetRespData() interface{}
+	SetRespData(data interface{}) Client
 
 	Response() error
 }

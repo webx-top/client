@@ -70,7 +70,7 @@ type ResponseUpload struct {
 }
 */
 
-func (a *Vditor) BuildResult() {
+func (a *Vditor) BuildResult() uploadClient.Client {
 	resp := &Response{}
 	uploadResult := &ResponseUpload{}
 	if a.GetError() != nil {
@@ -88,4 +88,5 @@ func (a *Vditor) BuildResult() {
 	}
 	resp.Data = uploadResult
 	a.RespData = resp
+	return a
 }
