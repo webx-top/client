@@ -47,6 +47,14 @@ type Response struct {
 	Data interface{} `json:"data"`
 }
 
+func (r *Response) AsMap() echo.H {
+	return echo.H{
+		`msg`:  r.Msg,
+		`code`: r.Code,
+		`data`: r.Data,
+	}
+}
+
 type ResponseUpload struct {
 	ErrFiles []string          `json:"errFiles"`
 	SuccMap  map[string]string `json:"succMap"`
@@ -87,6 +95,6 @@ func (a *Vditor) BuildResult() uploadClient.Client {
 		}
 	}
 	resp.Data = uploadResult
-	a.RespData = resp
+	a.RespData = resp.AsMap()
 	return a
 }

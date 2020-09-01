@@ -53,7 +53,7 @@ func (a *UEditor) BuildResult() uploadClient.Client {
 	} else {
 		publicURL = a.Data.FileURL
 	}
-	a.RespData = &Data{
+	data := &Data{
 		State:    `SUCCESS`,
 		URL:      publicURL,
 		Title:    a.Data.FileName,
@@ -61,6 +61,7 @@ func (a *UEditor) BuildResult() uploadClient.Client {
 		Type:     strings.ToLower(path.Ext(a.Data.FileName)),
 		Size:     a.Data.FileSize,
 	}
+	a.RespData = data.AsMap()
 	callback := a.Query(`callback`)
 	if len(callback) > 0 && callbackNameRegExp.MatchString(callback) {
 		a.JSONPVarName = callback

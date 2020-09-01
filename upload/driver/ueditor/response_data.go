@@ -1,5 +1,7 @@
 package ueditor
 
+import "github.com/webx-top/echo"
+
 type Data struct {
 	State    string `json:"state"`
 	URL      string `json:"url"`
@@ -7,6 +9,17 @@ type Data struct {
 	Original string `json:"original"`
 	Type     string `json:"type"`
 	Size     int64  `json:"size"`
+}
+
+func (d *Data) AsMap() echo.H {
+	return echo.H{
+		`state`:    d.State,
+		`url`:      d.URL,
+		`title`:    d.Title,
+		`original`: d.Original,
+		`type`:     d.Type,
+		`size`:     d.Size,
+	}
 }
 
 // StateMap 上传状态映射表，国际化用户需考虑此处数据的国际化
