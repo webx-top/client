@@ -19,7 +19,6 @@
 package ueditor
 
 import (
-	"encoding/json"
 	"path"
 	"regexp"
 	"strings"
@@ -47,14 +46,14 @@ type UEditor struct {
 
 var callbackNameRegExp = regexp.MustCompile(`^[\w_]+$`)
 
-func (a *UEditor) Result() (r string) {
+func (a *UEditor) BuildResult() {
 	var publicURL string
 	if a.Form("immediate") == "1" {
 		publicURL = "!" + a.Data.FileURL
 	} else {
 		publicURL = a.Data.FileURL
 	}
-	data := &Data{
+	a.RespData = &Data{
 		State:    `SUCCESS`,
 		URL:      publicURL,
 		Title:    a.Data.FileName,
@@ -62,13 +61,8 @@ func (a *UEditor) Result() (r string) {
 		Type:     strings.ToLower(path.Ext(a.Data.FileName)),
 		Size:     a.Data.FileSize,
 	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
 	callback := a.Query(`callback`)
 	if len(callback) > 0 && callbackNameRegExp.MatchString(callback) {
-		return callback + `(` + string(b) + `)`
+		a.JSONPVarName = callback
 	}
-	return string(b)
 }

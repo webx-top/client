@@ -19,8 +19,6 @@
 package vditor
 
 import (
-	"encoding/json"
-
 	uploadClient "github.com/webx-top/client/upload"
 	"github.com/webx-top/echo"
 )
@@ -72,7 +70,7 @@ type ResponseUpload struct {
 }
 */
 
-func (a *Vditor) Result() (r string) {
+func (a *Vditor) BuildResult() {
 	resp := &Response{}
 	uploadResult := &ResponseUpload{}
 	if a.GetError() != nil {
@@ -89,7 +87,5 @@ func (a *Vditor) Result() (r string) {
 		}
 	}
 	resp.Data = uploadResult
-	b, _ := json.Marshal(resp)
-	r = string(b)
-	return
+	a.RespData = resp
 }
