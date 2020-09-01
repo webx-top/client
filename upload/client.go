@@ -66,6 +66,10 @@ func (r *Result) SetFileNameGenerator(generator FileNameGenerator) *Result {
 	return r
 }
 
+func (r *Result) FileNameGenerator() FileNameGenerator {
+	return r.fileNameGenerator
+}
+
 func (r *Result) GenFileName() (string, error) {
 	if r.fileNameGenerator == nil {
 		return filepath.Join(time.Now().Format("2006/0102"), r.FileName), nil
