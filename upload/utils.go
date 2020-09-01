@@ -72,13 +72,13 @@ type ReaderAndSizer interface {
 	Sizer
 }
 
-func CopyBody(body ReadCloserWithSize) (oldBody []byte, newBody ReadCloserWithSize, err error) {
+func AsFile(body ReadCloserWithSize) (file multipart.File, err error) {
+	var oldBody []byte
 	oldBody, err = ioutil.ReadAll(body)
 	if err != nil {
 		return
 	}
-	body.Close()
-	newBody = WrapFileWithSize(body.Size(), watermark.Bytes2file(oldBody))
+	file = watermark.Bytes2file(oldBody)
 	return
 }
 

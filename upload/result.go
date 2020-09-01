@@ -19,6 +19,8 @@ var (
 	ErrExistsFile = errors.New("This file already exists")
 	// ErrInvalidContent 无效的上传内容
 	ErrInvalidContent = errors.New("Invalid upload content")
+	// ErrFileTooLarge 上传的文件太大
+	ErrFileTooLarge = errors.New("The uploaded file is too large and exceeds the size limit")
 )
 
 func (r Results) FileURLs() (rs []string) {

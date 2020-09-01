@@ -1,13 +1,12 @@
 package upload
 
 import (
-	"io"
+	"fmt"
 	"mime/multipart"
-	"path"
 
 	"github.com/admpub/checksum"
 	"github.com/admpub/log"
-	"github.com/webx-top/client/upload/watermark"
+	"github.com/webx-top/com"
 	"github.com/webx-top/echo"
 )
 
@@ -22,74 +21,25 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 	} else {
 		options.Result.CopyFrom(a.Data)
 	}
-	body, err := a.Body()
-	if err != nil {
-		a.err = err
+	var body ReadCloserWithSize
+	body, a.err = a.Body()
+	if a.err != nil {
 		return a
 	}
 	defer body.Close()
-	if file, ok := body.(multipart.File); ok {
-		a.err = a.saveFile(options.Result, file, options)
+	if body.Size() > a.uploadMaxSize {
+		a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(a.uploadMaxSize))
 		return a
 	}
-	if options.Checker != nil {
-		err = options.Checker(options.Result)
-		if err != nil {
-			a.err = err
+	file, ok := body.(multipart.File)
+	if !ok {
+		file, a.err = AsFile(body)
+		if a.err != nil {
 			return a
 		}
 	}
-	dstFile, err := options.Result.GenFileName()
-	if err != nil {
-		a.err = err
-		return a
-	}
 
-	var readerAndSizer ReaderAndSizer = body
-
-	if options.Result.FileType.String() == `image` {
-		if options.WatermarkOptions != nil && options.WatermarkOptions.IsEnabled() {
-			var b []byte
-			b, body, err = CopyBody(body)
-			if err != nil {
-				a.err = err
-				return a
-			}
-			b, err = watermark.Bytes(b, path.Ext(options.Result.FileName), options.WatermarkOptions)
-			if err != nil {
-				a.err = err
-				return a
-			}
-			readerAndSizer = WrapFileWithSize(int64(len(b)), watermark.Bytes2file(b))
-		} else if options.Callback != nil {
-			if _, ok := body.(io.Seeker); !ok {
-				_, body, err = CopyBody(body)
-				if err != nil {
-					a.err = err
-					return a
-				}
-			}
-		}
-	}
-	options.Result.SavePath, options.Result.FileURL, err = options.Storer.Put(dstFile, readerAndSizer, readerAndSizer.Size())
-	if err != nil {
-		a.err = err
-		return a
-	}
-	if options.Callback != nil {
-		if seek, ok := body.(io.Seeker); ok {
-			seek.Seek(0, 0)
-		}
-		if seek, ok := readerAndSizer.(io.Seeker); ok {
-			seek.Seek(0, 0)
-		}
-		err = options.Callback(options.Result, body, readerAndSizer)
-		if err != nil {
-			options.Storer.Delete(dstFile)
-			a.err = err
-			return a
-		}
-	}
+	a.err = a.saveFile(options.Result, file, options)
 	return a
 }
 
@@ -122,6 +72,11 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 			if file != nil {
 				file.Close()
 			}
+			return a
+		}
+		if fileHdr.Size > a.uploadMaxSize {
+			a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(a.uploadMaxSize))
+			file.Close()
 			return a
 		}
 		result := &Result{

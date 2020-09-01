@@ -26,6 +26,8 @@ import (
 type Client interface {
 	//初始化
 	Init(echo.Context, *Result)
+	SetUploadMaxSize(maxSize int64) Client
+	UploadMaxSize() int64
 	SetError(err error) Client
 	GetError() error
 	ErrorString() string

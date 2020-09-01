@@ -7,12 +7,20 @@ import (
 	"github.com/webx-top/echo"
 )
 
+// DefaultUploadMaxSize 默认最大上传尺寸: 5MB
+var DefaultUploadMaxSize int64 = 5 * 1024 * 1024
+
 func New(object Client, formFields ...string) *BaseClient {
 	formField := DefaultFormField
 	if len(formFields) > 0 {
 		formField = formFields[0]
 	}
-	return &BaseClient{Object: object, FormField: formField, Results: Results{}}
+	return &BaseClient{
+		Object:        object,
+		FormField:     formField,
+		Results:       Results{},
+		uploadMaxSize: DefaultUploadMaxSize,
+	}
 }
 
 var DefaultFormField = `filedata`
@@ -20,19 +28,29 @@ var DefaultFormField = `filedata`
 type BaseClient struct {
 	Data *Result
 	echo.Context
-	Object       Client
-	FormField    string // 表单文件字段名
-	Code         int    // HTTP code
-	ContentType  string
-	JSONPVarName string
-	err          error
-	RespData     interface{}
-	Results      Results
+	Object        Client
+	FormField     string // 表单文件字段名
+	Code          int    // HTTP code
+	ContentType   string
+	JSONPVarName  string
+	RespData      interface{}
+	Results       Results
+	err           error
+	uploadMaxSize int64
 }
 
 func (a *BaseClient) Init(ctx echo.Context, res *Result) {
 	a.Context = ctx
 	a.Data = res
+}
+
+func (a *BaseClient) SetUploadMaxSize(maxSize int64) Client {
+	a.uploadMaxSize = maxSize
+	return a
+}
+
+func (a *BaseClient) UploadMaxSize() int64 {
+	return a.uploadMaxSize
 }
 
 func (a *BaseClient) Name() string {
