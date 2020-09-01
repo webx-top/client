@@ -61,20 +61,24 @@ type Result struct {
 	fileNameGenerator FileNameGenerator
 }
 
+var DefaultNameGenerator FileNameGenerator = func(fileName string) (string, error) {
+	return filepath.Join(time.Now().Format("2006/0102"), fileName), nil
+}
+
 func (r *Result) SetFileNameGenerator(generator FileNameGenerator) *Result {
 	r.fileNameGenerator = generator
 	return r
 }
 
 func (r *Result) FileNameGenerator() FileNameGenerator {
+	if r.fileNameGenerator == nil {
+		return DefaultNameGenerator
+	}
 	return r.fileNameGenerator
 }
 
 func (r *Result) GenFileName() (string, error) {
-	if r.fileNameGenerator == nil {
-		return filepath.Join(time.Now().Format("2006/0102"), r.FileName), nil
-	}
-	return r.fileNameGenerator(r.FileName)
+	return r.FileNameGenerator()(r.FileName)
 }
 
 func (r *Result) FileIdString() string {
