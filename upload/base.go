@@ -113,7 +113,8 @@ func (a *BaseClient) responseContentType(code int) error {
 	case `xml`:
 		return a.XML(a.RespData, code)
 	case `redirect`:
-		return a.Redirect(fmt.Sprint(a.RespData), code)
+		a.Context.Response().Redirect(fmt.Sprint(a.RespData), code)
+		return nil
 	default:
 		if len(a.JSONPVarName) > 0 {
 			return a.JSONP(a.JSONPVarName, a.RespData, code)
