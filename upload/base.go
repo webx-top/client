@@ -51,7 +51,7 @@ func (a *BaseClient) GetError() error {
 	return a.err
 }
 
-func (a *BaseClient) Error() string {
+func (a *BaseClient) ErrorString() string {
 	if a.err != nil {
 		return a.err.Error()
 	}

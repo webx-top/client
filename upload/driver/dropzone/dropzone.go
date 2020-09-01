@@ -55,7 +55,7 @@ func (a *Dropzone) BuildResult() uploadClient.Client {
 	} else {
 		a.Code = http.StatusInternalServerError
 		a.ContentType = `string`
-		a.RespData = a.Error()
+		a.RespData = a.ErrorString()
 	}
 	return a
 }

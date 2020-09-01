@@ -169,9 +169,7 @@ func (a *BaseClient) saveFile(result *Result, file multipart.File, options *Opti
 	for _, hook := range options.SaveBefore {
 		newFile, size, err := hook(file, result, options)
 		if err != nil {
-			file.Close()
-			a.err = err
-			return a
+			return err
 		}
 		file = newFile
 		if size > 0 {

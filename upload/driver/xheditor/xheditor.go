@@ -66,7 +66,7 @@ func (a *XhEditor) BuildResult() uploadClient.Client {
 	}
 	var errMsg string
 	if a.GetError() != nil {
-		errMsg = a.Error()
+		errMsg = a.ErrorString()
 	}
 	a.RespData = echo.H{
 		`err`: errMsg,

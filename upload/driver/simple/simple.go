@@ -46,7 +46,7 @@ func (a *Simple) BuildResult() uploadClient.Client {
 	var errMsg string
 	if a.GetError() != nil {
 		status = 0
-		errMsg = a.Error()
+		errMsg = a.ErrorString()
 	}
 	a.RespData = echo.H{
 		`Status`:  status,

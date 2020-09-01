@@ -83,7 +83,7 @@ func (a *Vditor) BuildResult() uploadClient.Client {
 	uploadResult := &ResponseUpload{}
 	if a.GetError() != nil {
 		uploadResult.ErrFiles = append(uploadResult.ErrFiles, a.Data.FileName)
-		resp.Msg = a.GetError().Error()
+		resp.Msg = a.ErrorString()
 		resp.Code = 1
 	} else {
 		uploadResult.SuccMap = map[string]string{

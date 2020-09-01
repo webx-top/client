@@ -28,7 +28,7 @@ type Client interface {
 	Init(echo.Context, *Result)
 	SetError(err error) Client
 	GetError() error
-	Error() string
+	ErrorString() string
 
 	//file表单域name属性值
 	Name() string

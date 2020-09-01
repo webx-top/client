@@ -57,11 +57,11 @@ func (a *Markdown) BuildResult() uploadClient.Client {
 		a.Code = http.StatusFound
 		a.ContentType = `redirect`
 		//跨域上传返回操作
-		a.RespData = callback + "?dialog_id=" + dialogID + "&temp=" + time.Now().Format(`20060102150405`) + "&success=" + fmt.Sprint(succed) + "&message=" + url.QueryEscape(a.Error()) + "&url=" + a.Data.FileURL
+		a.RespData = callback + "?dialog_id=" + dialogID + "&temp=" + time.Now().Format(`20060102150405`) + "&success=" + fmt.Sprint(succed) + "&message=" + url.QueryEscape(a.ErrorString()) + "&url=" + a.Data.FileURL
 	} else {
 		a.RespData = echo.H{
 			`success`: succed,
-			`message`: a.Error(),
+			`message`: a.ErrorString(),
 			`url`:     a.Data.FileURL,
 			`id`:      a.Data.FileIdString(),
 		}

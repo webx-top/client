@@ -63,7 +63,7 @@ func (a *Webuploader) BuildResult() uploadClient.Client {
 	if a.GetError() != nil {
 		data[`error`] = echo.H{
 			`code`:    100,
-			`message`: a.Error(),
+			`message`: a.ErrorString(),
 		}
 	}
 	a.RespData = data
