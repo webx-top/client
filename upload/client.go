@@ -27,7 +27,10 @@ import (
 	"github.com/webx-top/echo"
 )
 
+// Results 批量上传时的结果数据记录
 type Results []*Result
+
+// Checker 上传合法性检查
 type Checker func(r *Result) error
 
 func (r Results) FileURLs() (rs []string) {
@@ -42,6 +45,10 @@ func (r *Results) Add(result *Result) {
 	*r = append(*r, result)
 }
 
+// FileNameGenerator 文件名称生成函数
+type FileNameGenerator func(string) (string, error)
+
+// Result 上传结果数据记录
 type Result struct {
 	FileID            int64
 	FileName          string
@@ -51,10 +58,10 @@ type Result struct {
 	SavePath          string
 	Md5               string
 	Addon             interface{}
-	fileNameGenerator func(string) (string, error)
+	fileNameGenerator FileNameGenerator
 }
 
-func (r *Result) SetFileNameGenerator(generator func(string) (string, error)) *Result {
+func (r *Result) SetFileNameGenerator(generator FileNameGenerator) *Result {
 	r.fileNameGenerator = generator
 	return r
 }
