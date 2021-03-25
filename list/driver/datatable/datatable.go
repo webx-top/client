@@ -32,7 +32,6 @@ import (
 	"github.com/webx-top/db/lib/reflectx"
 	"github.com/webx-top/db/lib/sqlbuilder"
 	"github.com/webx-top/echo"
-	"github.com/webx-top/webx/lib/database"
 )
 
 func init() {
@@ -267,7 +266,7 @@ func (a *DataTable) Build(defaultFields ...string) *db.Compounds {
 			if strings.Contains(keywords, ` - `) {
 				return mysql.GenDateRange(field, keywords)
 			}
-			if database.IsCompareField(keywords) {
+			if mysql.IsCompareField(keywords) {
 				return cond.Add(mysql.CompareField(field, keywords))
 			}
 			return mysql.RangeField(field, keywords)
