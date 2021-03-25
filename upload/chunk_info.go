@@ -1,6 +1,8 @@
 package upload
 
 import (
+	"net/url"
+
 	"github.com/webx-top/echo/param"
 )
 
@@ -19,21 +21,42 @@ type ChunkInfor interface {
 var _ ChunkInfor = &ChunkInfo{}
 
 type ChunkInfo struct {
-	UUID             string
-	ChunkIndex       uint64
-	TotalBytes       uint64
-	ChunkBytes       uint64
-	TotalChunks      uint64
 	ChunkOffsetBytes uint64
+	ChunkIndex       uint64
+
+	TotalBytes  uint64
+	TotalChunks uint64
+	ChunkBytes  uint64
+	UUID        string
+	Mapping     map[string]string
+}
+
+func (c *ChunkInfo) getFormField(field string) string {
+	if c.Mapping == nil {
+		return field
+	}
+	if v, y := c.Mapping[field]; y {
+		return v
+	}
+	return field
 }
 
 func (c *ChunkInfo) BatchSet(m param.Store) {
-	c.UUID = m.String(`UUID`)
-	c.ChunkIndex = m.Uint64(`ChunkIndex`)
-	c.TotalBytes = m.Uint64(`TotalBytes`)
-	c.ChunkBytes = m.Uint64(`ChunkBytes`)
-	c.TotalChunks = m.Uint64(`TotalChunks`)
-	c.ChunkOffsetBytes = m.Uint64(`ChunkOffsetBytes`)
+	c.UUID = m.String(c.getFormField(`uuid`))
+	c.ChunkIndex = m.Uint64(c.getFormField(`chunkIndex`))
+	c.TotalBytes = m.Uint64(c.getFormField(`totalBytes`))
+	c.ChunkBytes = m.Uint64(c.getFormField(`chunkBytes`))
+	c.TotalChunks = m.Uint64(c.getFormField(`totalChunks`))
+	c.ChunkOffsetBytes = m.Uint64(c.getFormField(`chunkOffsetBytes`))
+}
+
+func (c *ChunkInfo) BatchSetByURLValues(m url.Values) {
+	c.UUID = m.Get(c.getFormField(`uuid`))
+	c.ChunkIndex = param.AsUint64(m.Get(c.getFormField(`chunkIndex`)))
+	c.TotalBytes = param.AsUint64(m.Get(c.getFormField(`totalBytes`)))
+	c.ChunkBytes = param.AsUint64(m.Get(c.getFormField(`chunkBytes`)))
+	c.TotalChunks = param.AsUint64(m.Get(c.getFormField(`totalChunks`)))
+	c.ChunkOffsetBytes = param.AsUint64(m.Get(c.getFormField(`chunkOffsetBytes`)))
 }
 
 // - 当前分片 -
@@ -57,7 +80,13 @@ func (c *ChunkInfo) GetTotalChunks() uint64 {
 
 // 文件分片尺寸
 func (c *ChunkInfo) GetChunkBytes() uint64 {
-	return c.ChunkBytes
+	if c.ChunkBytes > 0 {
+		return c.ChunkBytes
+	}
+	if c.GetTotalChunks() <= 0 {
+		return 0
+	}
+	return c.GetTotalBytes() / c.GetTotalChunks()
 }
 
 // 文件总尺寸

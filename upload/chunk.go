@@ -1,8 +1,13 @@
 package upload
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
-type Chunked struct {
+type ChunkUpload struct {
 	TempDir      string
+	SaveDir      string
 	TempLifetime time.Duration
+	lock         sync.RWMutex
 }
