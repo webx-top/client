@@ -41,14 +41,15 @@ func (c *ChunkUpload) Merge(info ChunkInfor, fileName, savePath string) error {
 	}
 	// 设置文件写入偏移量
 	file.Seek(chunkSize*int64(info.GetChunkIndex()), 0)
+
 	chunkFilePath := filepath.Join(c.TempDir, fmt.Sprintf(`%s_%d`, fileName, info.GetChunkIndex()))
 	log.Debug("分片路径: ", chunkFilePath)
+
 	chunkFileObj, err := os.Open(chunkFilePath)
 	if err != nil {
 		return fmt.Errorf("打开分片文件失败: %w", err)
 	}
 
-	// 上传总数
 	_, err = WriteTo(chunkFileObj, file)
 
 	chunkFileObj.Close()
@@ -75,9 +76,13 @@ func (c *ChunkUpload) Upload(r *http.Request, mapping map[string]string) (int64,
 
 	info := &ChunkInfo{Mapping: mapping}
 	info.BatchSetByURLValues(r.Form)
-	com.Dump(info)
 
 	fileName := fileHeader.Filename
+
+	if log.IsEnabled(log.LevelDebug) {
+		log.Debug(fileName+`: `, com.Dump(info, false))
+	}
+
 	if err := os.MkdirAll(c.TempDir, os.ModePerm); err != nil {
 		return 0, err
 	}
@@ -135,21 +140,6 @@ func uploadFile(upfile multipart.File, upSeek int64, file *os.File, fSeek int64)
 }
 
 func WriteTo(r io.Reader, w io.Writer) (int64, error) {
-	var fileSzie int64
 	data := make([]byte, 1024)
-	for {
-		n, err := r.Read(data)
-		if err != nil {
-			if err == io.EOF {
-				return fileSzie, nil
-			}
-			return 0, err
-		}
-		len, err := w.Write(data[:n])
-		if err != nil {
-			return 0, err
-		}
-		// 记录上传长度
-		fileSzie += int64(len)
-	}
+	return io.CopyBuffer(w, r, data)
 }

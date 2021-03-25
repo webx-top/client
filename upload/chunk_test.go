@@ -94,6 +94,8 @@ func TestChunkUpload(t *testing.T) {
 		go upload(buf, i)
 	}
 	wg.Wait()
-	//os.RemoveAll("../_testdata")
-	//panic(``)
+	uploaded, err := ioutil.ReadFile(cu.SaveDir + `test.txt`)
+	test.Eq(t, nil, err)
+	test.Eq(t, b, uploaded)
+	os.RemoveAll("../_testdata")
 }
