@@ -12,7 +12,9 @@ type ChunkUpload struct {
 	TempLifetime      time.Duration
 	UID               interface{} // number or string
 	fileNameGenerator FileNameGenerator
+	fileOriginalName  string
 	savePath          string
+	saveSize          int64
 }
 
 func (c *ChunkUpload) GetUIDString() string {
@@ -37,4 +39,12 @@ func (c *ChunkUpload) FileNameGenerator() FileNameGenerator {
 
 func (c *ChunkUpload) GetSavePath() string {
 	return c.savePath
+}
+
+func (c *ChunkUpload) GetSaveSize() int64 {
+	return c.saveSize
+}
+
+func (c *ChunkUpload) GetFileOriginalName() string {
+	return c.fileOriginalName
 }

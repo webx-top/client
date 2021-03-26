@@ -46,12 +46,8 @@ func (c *ChunkUpload) chunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 		return 0, fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
 	}
 
-	fileName := info.GetFileName()
+	c.fileOriginalName = info.GetFileName()
 	chunkSize := int64(info.GetCurrentSize())
-
-	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(fileName+`: `, com.Dump(info, false))
-	}
 
 	uid := c.GetUIDString()
 	chunkFileDir := filepath.Join(c.TempDir, uid)
@@ -59,8 +55,13 @@ func (c *ChunkUpload) chunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	if err := os.MkdirAll(chunkFileDir, os.ModePerm); err != nil {
 		return 0, err
 	}
+
 	// 新文件创建
-	filePath := filepath.Join(chunkFileDir, fmt.Sprintf("%s_%d", fileName, info.GetChunkIndex()))
+	filePath := filepath.Join(chunkFileDir, fmt.Sprintf("%s_%d", c.fileOriginalName, info.GetChunkIndex()))
+	if log.IsEnabled(log.LevelDebug) {
+		log.Debug(filePath+`: `, com.Dump(info, false))
+	}
+
 	// 获取现在文件大小
 	fi, err := os.Stat(filePath)
 	var size int64
@@ -95,7 +96,7 @@ func (c *ChunkUpload) chunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	// 将数据写入文件
 	total, err := uploadFile(upFile, start, file, saveStart)
 	if err == nil && total == chunkSize {
-		_, err = c.Merge(info, fileName)
+		_, err = c.Merge(info, c.fileOriginalName)
 		if err != nil {
 			log.Error(err)
 		}
