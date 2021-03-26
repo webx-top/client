@@ -61,10 +61,10 @@ func (a *Dropzone) BuildResult() uploadClient.Client {
 }
 
 var MappingChunkInfo = map[string]string{
-	`uuid`:             `dzuuid`,
+	`fileUUID`:         `dzuuid`,
 	`chunkIndex`:       `dzchunkindex`,
-	`totalBytes`:       `dztotalfilesize`,
-	`chunkBytes`:       `dzchunksize`,
-	`totalChunks`:      `dztotalchunkcount`,
+	`fileTotalBytes`:   `dztotalfilesize`,
+	`fileChunkBytes`:   `dzchunksize`,
+	`fileTotalChunks`:  `dztotalchunkcount`,
 	`chunkOffsetBytes`: `dzchunkbyteoffset`,
 }
