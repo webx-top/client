@@ -17,7 +17,7 @@ func (c *ChunkUpload) merge(info ChunkInfor, fileName, savePath string) (int64, 
 	// 打开之前上传文件
 	file, err := os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		return 0, fmt.Errorf("打开之前上传文件不存在: %w", err)
+		return 0, fmt.Errorf("创建文件失败: %w", err)
 	}
 	defer file.Close()
 	uid := c.GetUIDString()
@@ -41,7 +41,7 @@ func (c *ChunkUpload) merge(info ChunkInfor, fileName, savePath string) (int64, 
 
 	chunkFileObj, err := os.Open(chunkFilePath)
 	if err != nil {
-		return 0, fmt.Errorf("打开分片文件失败: %w", err)
+		return 0, fmt.Errorf("分片文件打开失败: %w", err)
 	}
 	var n int64
 	n, err = WriteTo(chunkFileObj, file)
@@ -49,15 +49,15 @@ func (c *ChunkUpload) merge(info ChunkInfor, fileName, savePath string) (int64, 
 	chunkFileObj.Close()
 
 	if err != nil {
-		return n, fmt.Errorf("文件上传失败: %w", err)
+		return n, fmt.Errorf("分片文件合并失败: %w", err)
 	}
 
 	// 删除文件 需要先关闭该文件
 	err = os.Remove(chunkFilePath)
 	if err != nil {
-		return n, fmt.Errorf("临时记录文件删除失败: %w", err)
+		return n, fmt.Errorf("分片文件删除失败: %w", err)
 	}
-	log.Debug("文件复制完毕")
+	log.Debug("分片文件复制完毕")
 	return n, err
 }
 
@@ -91,7 +91,7 @@ func (c *ChunkUpload) MergeAll(chunkFileNames []string, saveFileName string) (sa
 	var file *os.File
 	file, err = os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("打开之前上传文件不存在: %w", err)
+		err = fmt.Errorf("创建文件失败: %w", err)
 		return
 	}
 	defer file.Close()

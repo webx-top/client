@@ -31,11 +31,11 @@ func (c *ChunkUpload) Upload(r *http.Request, mapping map[string]string) (int64,
 		CurrentSize: uint64(fileHeader.Size),
 	}
 	info.BatchSetByURLValues(r.Form)
-	return c.chunkUpload(info, upFile)
+	return c.ChunkUpload(info, upFile)
 }
 
 // 分片上传
-func (c *ChunkUpload) chunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
+func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
 	if info.GetFileChunkBytes() < 1 {
 		return 0, fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
 	}

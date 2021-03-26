@@ -69,9 +69,6 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 		var file multipart.File
 		file, a.err = fileHdr.Open()
 		if a.err != nil {
-			if file != nil {
-				file.Close()
-			}
 			return a
 		}
 		if fileHdr.Size > a.uploadMaxSize {
