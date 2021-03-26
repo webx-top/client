@@ -3,8 +3,11 @@ package upload
 import (
 	"time"
 
+	"github.com/webx-top/com"
 	"github.com/webx-top/echo/param"
 )
+
+var fileRWLock = com.DoOnce{}
 
 type ChunkUpload struct {
 	TempDir           string
@@ -15,6 +18,7 @@ type ChunkUpload struct {
 	fileOriginalName  string
 	savePath          string
 	saveSize          int64
+	merged            bool
 }
 
 func (c *ChunkUpload) GetUIDString() string {
@@ -47,4 +51,8 @@ func (c *ChunkUpload) GetSaveSize() int64 {
 
 func (c *ChunkUpload) GetFileOriginalName() string {
 	return c.fileOriginalName
+}
+
+func (c *ChunkUpload) Merged() bool {
+	return c.merged
 }

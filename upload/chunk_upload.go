@@ -18,9 +18,13 @@ var (
 )
 
 // 分片上传
-func (c *ChunkUpload) Upload(r *http.Request, mapping map[string]string) (int64, error) {
+func (c *ChunkUpload) Upload(r *http.Request, mapping map[string]string, formFields ...string) (int64, error) {
+	formField := `file`
+	if len(formFields) > 0 {
+		formField = formFields[0]
+	}
 	// 获取上传文件
-	upFile, fileHeader, err := r.FormFile("file")
+	upFile, fileHeader, err := r.FormFile(formField)
 	if err != nil {
 		return 0, fmt.Errorf("上传文件错误: %w", err)
 	}
@@ -74,7 +78,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	}
 	// 判断文件是否传输完成
 	if size == chunkSize {
-		return 0, fmt.Errorf("%w: %s", ErrChunkUploadCompleted, filepath.Base(filePath))
+		return 0, fmt.Errorf("%w: %s (size: %d bytes)", ErrChunkUploadCompleted, filepath.Base(filePath), size)
 	}
 	start := size
 	saveStart := size
@@ -82,6 +86,12 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	if offset > 0 {
 		start = 0
 		saveStart = offset
+	}
+
+	// 记录文件信息
+	err = c.SaveFileSizeInfo(info, c.fileOriginalName)
+	if err != nil {
+		return 0, err
 	}
 
 	// 进行断点上传

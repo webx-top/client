@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"errors"
 	"fmt"
 	"mime/multipart"
 
@@ -75,6 +76,26 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 			a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(a.uploadMaxSize))
 			file.Close()
 			return a
+		}
+		if a.chunkUpload != nil {
+			info := &ChunkInfo{
+				Mapping:     a.fieldMapping,
+				FileName:    fileHdr.Filename,
+				CurrentSize: uint64(fileHdr.Size),
+			}
+			info.CallbackBatchSet(func(name string) string {
+				return a.Form(name)
+			})
+			_, err := a.chunkUpload.ChunkUpload(info, file)
+			if err == nil {
+				file.Close()
+				continue
+			}
+			if !errors.Is(err, ErrChunkUnsupported) {
+				a.err = err
+				file.Close()
+				return a
+			}
 		}
 		result := &Result{
 			FileName: fileHdr.Filename,

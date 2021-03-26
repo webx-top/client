@@ -22,6 +22,21 @@ type ChunkInfor interface {
 
 var _ ChunkInfor = &ChunkInfo{}
 
+type FileSizeInfo struct {
+	TotalBytes  uint64 `json:"totalBytes" xml:"totalBytes"`   // 文件总尺寸(字节)
+	TotalChunks uint64 `json:"totalChunks" xml:"totalChunks"` // 文件分割分片数量
+	ChunkBytes  uint64 `json:"chunkBytes" xml:"chunkBytes"`   // 文件每个分片尺寸(字节)
+	MergedBytes uint64 `json:"mergedBytes" xml:"mergedBytes"` // 已合并尺寸
+}
+
+func NewFileSizeInfo(info ChunkInfor) *FileSizeInfo {
+	return &FileSizeInfo{
+		TotalBytes:  info.GetFileTotalBytes(),
+		TotalChunks: info.GetFileTotalChunks(),
+		ChunkBytes:  info.GetFileChunkBytes(),
+	}
+}
+
 type ChunkInfo struct {
 	ChunkOffsetBytes uint64 // chunk offset bytes
 	ChunkIndex       uint64 // index of chunk
@@ -55,12 +70,16 @@ func (c *ChunkInfo) BatchSet(m param.Store) {
 }
 
 func (c *ChunkInfo) BatchSetByURLValues(m url.Values) {
-	c.FileUUID = m.Get(c.getFormField(`fileUUID`))
-	c.ChunkIndex = param.AsUint64(m.Get(c.getFormField(`chunkIndex`)))
-	c.FileTotalBytes = param.AsUint64(m.Get(c.getFormField(`fileTotalBytes`)))
-	c.FileChunkBytes = param.AsUint64(m.Get(c.getFormField(`fileChunkBytes`)))
-	c.FileTotalChunks = param.AsUint64(m.Get(c.getFormField(`fileTotalChunks`)))
-	c.ChunkOffsetBytes = param.AsUint64(m.Get(c.getFormField(`chunkOffsetBytes`)))
+	c.CallbackBatchSet(m.Get)
+}
+
+func (c *ChunkInfo) CallbackBatchSet(cb func(string) string) {
+	c.FileUUID = cb(c.getFormField(`fileUUID`))
+	c.ChunkIndex = param.AsUint64(cb(c.getFormField(`chunkIndex`)))
+	c.FileTotalBytes = param.AsUint64(cb(c.getFormField(`fileTotalBytes`)))
+	c.FileChunkBytes = param.AsUint64(cb(c.getFormField(`fileChunkBytes`)))
+	c.FileTotalChunks = param.AsUint64(cb(c.getFormField(`fileTotalChunks`)))
+	c.ChunkOffsetBytes = param.AsUint64(cb(c.getFormField(`chunkOffsetBytes`)))
 }
 
 // - 当前分片 -

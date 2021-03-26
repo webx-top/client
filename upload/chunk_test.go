@@ -97,5 +97,5 @@ func TestChunkUpload(t *testing.T) {
 	uploaded, err := ioutil.ReadFile(cu.GetSavePath())
 	test.Eq(t, nil, err)
 	test.Eq(t, string(b), string(uploaded))
-	os.RemoveAll("../_testdata")
+	//os.RemoveAll("../_testdata")
 }
