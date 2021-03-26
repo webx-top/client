@@ -87,8 +87,8 @@ func TestChunkUpload(t *testing.T) {
 		fmt.Printf("offset: %d (%d)\n", i*chunkSize, i*chunkSize+chunkSize)
 		n, err := file.Read(data)
 		if err == io.EOF {
-			//wg.Done()
-			//continue
+			wg.Done()
+			continue
 		}
 		buf := bytes.NewBuffer(data[:n])
 		go upload(buf, i)
