@@ -26,6 +26,9 @@ func (c *ChunkUpload) Upload(r *http.Request, opts ...ChunkInfoOpter) (int64, er
 	for _, opt := range opts {
 		opt(info)
 	}
+	if !c.IsSupported(info) {
+		return 0, ErrChunkUnsupported
+	}
 	// 获取上传文件
 	upFile, fileHeader, err := r.FormFile(info.FormField)
 	if err != nil {
@@ -37,16 +40,31 @@ func (c *ChunkUpload) Upload(r *http.Request, opts ...ChunkInfoOpter) (int64, er
 	return c.ChunkUpload(info, upFile)
 }
 
-// 分片上传
-func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
+func (c *ChunkUpload) IsSupported(info ChunkInfor) bool {
+	err := c.check(info)
+	if err == nil {
+		return true
+	}
+	return !errors.Is(err, ErrChunkUnsupported)
+}
+
+func (c *ChunkUpload) check(info ChunkInfor) error {
 	if info.GetFileChunkBytes() < 1 {
-		return 0, fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
+		return fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
 	}
 	if info.GetFileTotalBytes() < 1 {
-		return 0, fmt.Errorf(`%w: FileTotalBytes less than 1`, ErrChunkUnsupported)
+		return fmt.Errorf(`%w: FileTotalBytes less than 1`, ErrChunkUnsupported)
 	}
 	if info.GetFileChunkBytes() < 1 {
-		return 0, fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
+		return fmt.Errorf(`%w: FileChunkBytes less than 1`, ErrChunkUnsupported)
+	}
+	return nil
+}
+
+// 分片上传
+func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
+	if err := c.check(info); err != nil {
+		return 0, err
 	}
 
 	c.fileOriginalName = info.GetFileName()
