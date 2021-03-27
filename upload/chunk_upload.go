@@ -18,23 +18,22 @@ var (
 )
 
 // 分片上传
-func (c *ChunkUpload) Upload(r *http.Request, mapping map[string]string, formFields ...string) (int64, error) {
-	formField := `file`
-	if len(formFields) > 0 {
-		formField = formFields[0]
+func (c *ChunkUpload) Upload(r *http.Request, opts ...ChunkInfoOpter) (int64, error) {
+	info := &ChunkInfo{
+		FormField: `file`,
+	}
+	info.BatchSetByURLValues(r.Form)
+	for _, opt := range opts {
+		opt(info)
 	}
 	// 获取上传文件
-	upFile, fileHeader, err := r.FormFile(formField)
+	upFile, fileHeader, err := r.FormFile(info.FormField)
 	if err != nil {
 		return 0, fmt.Errorf("上传文件错误: %w", err)
 	}
+	info.FileName = fileHeader.Filename
+	info.CurrentSize = uint64(fileHeader.Size)
 	defer upFile.Close()
-	info := &ChunkInfo{
-		Mapping:     mapping,
-		FileName:    fileHeader.Filename,
-		CurrentSize: uint64(fileHeader.Size),
-	}
-	info.BatchSetByURLValues(r.Form)
 	return c.ChunkUpload(info, upFile)
 }
 
