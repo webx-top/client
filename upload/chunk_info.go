@@ -46,12 +46,26 @@ func (c *ChunkInfo) getFormField(field string) string {
 }
 
 func (c *ChunkInfo) BatchSet(m param.Store) {
-	c.FileUUID = m.String(c.getFormField(`fileUUID`))
-	c.ChunkIndex = m.Uint64(c.getFormField(`chunkIndex`))
-	c.FileTotalBytes = m.Uint64(c.getFormField(`fileTotalBytes`))
-	c.FileChunkBytes = m.Uint64(c.getFormField(`fileChunkBytes`))
-	c.FileTotalChunks = m.Uint64(c.getFormField(`fileTotalChunks`))
-	c.ChunkOffsetBytes = m.Uint64(c.getFormField(`chunkOffsetBytes`))
+	for key, val := range m {
+		c.Set(key, val)
+	}
+}
+
+func (c *ChunkInfo) Set(key string, value interface{}) {
+	switch key {
+	case `fileUUID`:
+		c.FileUUID = param.AsString(value)
+	case `chunkIndex`:
+		c.ChunkIndex = param.AsUint64(value)
+	case `fileTotalBytes`:
+		c.FileTotalBytes = param.AsUint64(value)
+	case `fileChunkBytes`:
+		c.FileChunkBytes = param.AsUint64(value)
+	case `fileTotalChunks`:
+		c.FileTotalChunks = param.AsUint64(value)
+	case `chunkOffsetBytes`:
+		c.ChunkOffsetBytes = param.AsUint64(value)
+	}
 }
 
 func (c *ChunkInfo) BatchSetByURLValues(m url.Values) {
