@@ -67,7 +67,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 		return 0, err
 	}
 
-	c.fileOriginalName = info.GetFileName()
+	c.fileOriginalName = filepath.Base(info.GetFileName())
 	chunkSize := int64(info.GetCurrentSize())
 
 	uid := c.GetUIDString()
