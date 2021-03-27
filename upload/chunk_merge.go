@@ -17,7 +17,7 @@ func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, fileName, 
 	// 打开之前上传文件
 	file, err := os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		return 0, fmt.Errorf("创建文件失败: %w", err)
+		return 0, fmt.Errorf("创建文件“%s”失败: %w (merge)", savePath, err)
 	}
 	defer file.Close()
 	uid := c.GetUIDString()
@@ -47,16 +47,6 @@ func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, fileName, 
 	}
 	log.Debug("分片文件复制完毕")
 	return n, err
-}
-
-// 合并切片文件
-func (c *ChunkUpload) Merge(info ChunkInfor, saveFileName string) (savePath string, err error) {
-	if err = c.prepareSavePath(saveFileName); err != nil {
-		return
-	}
-	c.saveSize, err = c.merge(info.GetChunkIndex(), info.GetFileChunkBytes(), saveFileName, c.savePath)
-
-	return
 }
 
 // 判断是否完成  根据现有文件的大小 与 上传文件大小进行匹配
@@ -111,7 +101,6 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
 
 func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
 	if len(c.savePath) == 0 {
-		var saveName string
 		saveName, err := c.FileNameGenerator()(saveFileName)
 		if err != nil {
 			return err
@@ -126,7 +115,7 @@ func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
 }
 
 // 合并某个文件的所有切片
-func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (savePath string, err error) {
+func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (err error) {
 	c.saveSize = 0
 	if err = os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
 		return
@@ -136,9 +125,9 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 	}
 	// 打开之前上传文件
 	var file *os.File
-	file, err = os.OpenFile(c.savePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	file, err = os.OpenFile(c.savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("创建文件失败: %w", err)
+		err = fmt.Errorf("创建文件“%s”失败: %w (mergeAll)", c.savePath, err)
 		return
 	}
 	uid := c.GetUIDString()
@@ -152,7 +141,7 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 		for chunkIndex := uint64(0); chunkIndex < totalChunks; chunkIndex++ {
 			wg.Add(1)
 			go func(chunkIndex uint64) {
-				n, err := c.merge(chunkIndex, fileChunkBytes, saveFileName, savePath)
+				n, err := c.merge(chunkIndex, fileChunkBytes, saveFileName, c.savePath)
 				if err != nil {
 					log.Error(err)
 				} else {

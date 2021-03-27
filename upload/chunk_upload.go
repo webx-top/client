@@ -126,7 +126,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	total, err := uploadFile(upFile, start, file, saveStart)
 	if err == nil && total == chunkSize {
 		if c.isFinish(info, c.fileOriginalName) {
-			_, err = c.MergeAll(info.GetFileTotalChunks(), info.GetFileChunkBytes(), c.fileOriginalName, c.IsAsyncMerge())
+			err = c.MergeAll(info.GetFileTotalChunks(), info.GetFileChunkBytes(), c.fileOriginalName, c.IsAsyncMerge())
 			if err != nil {
 				log.Error(err)
 			}

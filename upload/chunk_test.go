@@ -69,7 +69,7 @@ func TestChunkUpload(t *testing.T) {
 		req.Form.Add(`fileTotalChunks`, fmt.Sprintf(`%d`, chunks))
 		req.Form.Add(`fileChunkBytes`, fmt.Sprintf(`%d`, chunkSize))
 		req.Form.Add(`fileTotalBytes`, fmt.Sprintf(`%d`, len(b)))
-		n, err := cu.Upload(req, nil)
+		n, err := cu.Upload(req)
 		test.Eq(t, nil, err)
 		test.NotEq(t, 0, n)
 		if res.Code != http.StatusOK {
