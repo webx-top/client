@@ -72,6 +72,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	if len(c.savePath) > 0 && filepath.Base(c.savePath) == c.fileOriginalName {
 		fi, err := os.Stat(c.savePath)
 		if err == nil && fi.Size() == int64(info.GetFileTotalBytes()) {
+			c.saveSize = fi.Size()
 			return 0, ErrFileUploadCompleted
 		}
 	}
