@@ -51,18 +51,10 @@ func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, fileName, 
 
 // 合并切片文件
 func (c *ChunkUpload) Merge(info ChunkInfor, saveFileName string) (savePath string, err error) {
-	var saveName string
-	saveName, err = c.FileNameGenerator()(saveFileName)
-	if err != nil {
+	if err = c.prepareSavePath(saveFileName); err != nil {
 		return
 	}
-	savePath = filepath.Join(c.SaveDir, saveName)
-	c.savePath = savePath
-	saveDir := filepath.Dir(savePath)
-	if err = os.MkdirAll(saveDir, os.ModePerm); err != nil {
-		return
-	}
-	c.saveSize, err = c.merge(info.GetChunkIndex(), info.GetFileChunkBytes(), saveFileName, savePath)
+	c.saveSize, err = c.merge(info.GetChunkIndex(), info.GetFileChunkBytes(), saveFileName, c.savePath)
 
 	return
 }
@@ -117,26 +109,34 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
 	return chunkSize == int64(fileSize)
 }
 
+func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
+	if len(c.savePath) == 0 {
+		var saveName string
+		saveName, err := c.FileNameGenerator()(saveFileName)
+		if err != nil {
+			return err
+		}
+		c.savePath = filepath.Join(c.SaveDir, saveName)
+	}
+	saveDir := filepath.Dir(c.savePath)
+	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		return err
+	}
+	return nil
+}
+
 // 合并某个文件的所有切片
 func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (savePath string, err error) {
 	c.saveSize = 0
 	if err = os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
 		return
 	}
-	var saveName string
-	saveName, err = c.FileNameGenerator()(saveFileName)
-	if err != nil {
-		return
-	}
-	savePath = filepath.Join(c.SaveDir, saveName)
-	c.savePath = savePath
-	saveDir := filepath.Dir(savePath)
-	if err = os.MkdirAll(saveDir, os.ModePerm); err != nil {
+	if err = c.prepareSavePath(saveFileName); err != nil {
 		return
 	}
 	// 打开之前上传文件
 	var file *os.File
-	file, err = os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	file, err = os.OpenFile(c.savePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		err = fmt.Errorf("创建文件失败: %w", err)
 		return
