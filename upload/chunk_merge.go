@@ -5,19 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/admpub/log"
+	"github.com/webx-top/echo"
 	"github.com/webx-top/echo/encoding/json"
+	"github.com/webx-top/echo/param"
 )
 
-const chunkInfoFileExtension = ".chunk.json"
-
 // 合并切片文件
-func (c *ChunkUpload) merge(info ChunkInfor, fileName, savePath string) (int64, error) {
-	saveDir := filepath.Dir(savePath)
-	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
-		return 0, err
-	}
+func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, fileName, savePath string) (int64, error) {
 	// 打开之前上传文件
 	file, err := os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
@@ -25,22 +22,10 @@ func (c *ChunkUpload) merge(info ChunkInfor, fileName, savePath string) (int64, 
 	}
 	defer file.Close()
 	uid := c.GetUIDString()
-	fileChunkBytes := int64(info.GetFileChunkBytes())
-	if fileChunkBytes <= 0 {
-		if info.GetChunkIndex() == 0 {
-			return 0, err
-		}
-		// 分片大小获取
-		fi, err := os.Stat(filepath.Join(c.TempDir, uid, fileName+"_0"))
-		if err != nil {
-			return 0, err
-		}
-		fileChunkBytes = fi.Size()
-	}
 	// 设置文件写入偏移量
-	file.Seek(fileChunkBytes*int64(info.GetChunkIndex()), 0)
+	file.Seek(int64(fileChunkBytes*chunkIndex), 0)
 
-	chunkFilePath := filepath.Join(c.TempDir, uid, fmt.Sprintf(`%s_%d`, fileName, info.GetChunkIndex()))
+	chunkFilePath := filepath.Join(c.TempDir, uid, fmt.Sprintf(`%s_%d`, fileName, chunkIndex))
 	log.Debug("分片路径: ", chunkFilePath)
 
 	chunkFileObj, err := os.Open(chunkFilePath)
@@ -74,34 +59,67 @@ func (c *ChunkUpload) Merge(info ChunkInfor, saveFileName string) (savePath stri
 	}
 	savePath = filepath.Join(c.SaveDir, saveName)
 	c.savePath = savePath
-	c.saveSize, err = c.merge(info, saveFileName, savePath)
+	saveDir := filepath.Dir(savePath)
+	if err = os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		return
+	}
+	c.saveSize, err = c.merge(info.GetChunkIndex(), info.GetFileChunkBytes(), saveFileName, savePath)
 
-	uid := c.GetUIDString()
-	flag := `chunkUpload.mergeFile.` + uid + `.` + saveFileName
-	if !fileRWLock.CanSet(flag) {
-		fileRWLock.Wait(flag) // 需要等待完成
-		return
-	}
-	defer fileRWLock.Release(flag)
-	var fsi *FileSizeInfo
-	fsi, err = c.GetFileSizeInfo(saveFileName)
-	if err != nil {
-		return
-	}
-	fsi.MergedBytes = fsi.MergedBytes + uint64(c.saveSize)
-	//fmt.Println(flag, `=====================================================>`, fsi.MergedBytes)
-	if fsi.MergedBytes >= fsi.TotalBytes {
-		//fmt.Println(flag, `=============================>`, fsi.TotalBytes, fsi.MergedBytes)
-		err = c.RemoveFileSizeInfo(saveFileName)
-		c.merged = true
-	} else {
-		err = c.saveFileSizeInfo(fsi, saveFileName)
-	}
 	return
 }
 
+// 判断是否完成  根据现有文件的大小 与 上传文件大小进行匹配
+func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
+	fileSize := info.GetFileTotalBytes()
+	uid := c.GetUIDString()
+	chunkFileDir := filepath.Join(c.TempDir, uid)
+	totalFile := filepath.Join(chunkFileDir, fileName+".total")
+	flag := `chunkUpload.saveFileSizeInfo.` + uid + `.` + fileName
+	if !fileRWLock().CanSet(flag) {
+		fileRWLock().Wait(flag) // 需要等待创建完成
+		b, err := ioutil.ReadFile(totalFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Errorf(`读取分片统计结果文件“%s”出错: %v`, totalFile, err)
+			}
+			return false
+		}
+		chunkSize := param.AsInt64(string(b))
+		if log.IsEnabled(log.LevelDebug) {
+			log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize, `wait`: true}, false))
+		}
+		if chunkSize == int64(fileSize) {
+			return false // 说明以前的已经判断为完成了，后面堵塞住的统一返回false避免重复执行
+		}
+		return c.isFinish(info, fileName)
+	}
+	defer fileRWLock().Release(flag)
+	var chunkSize int64
+	chunkTotal := info.GetFileTotalChunks()
+	for i := uint64(0); i < chunkTotal; i++ {
+		chunkFile := filepath.Join(chunkFileDir, fileName+"_"+param.AsString(i))
+		// 分片大小获取
+		fi, err := os.Stat(chunkFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Errorf(`统计分片文件“%s”尺寸错误：%v`, chunkFile, err)
+			}
+			return false
+		}
+		chunkSize += fi.Size()
+	}
+	if log.IsEnabled(log.LevelDebug) {
+		log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize}, false))
+	}
+	err := ioutil.WriteFile(totalFile, []byte(param.AsString(chunkSize)), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	return chunkSize == int64(fileSize)
+}
+
 // 合并某个文件的所有切片
-func (c *ChunkUpload) MergeAll(chunkFileNames []string, saveFileName string) (savePath string, err error) {
+func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (savePath string, err error) {
 	c.saveSize = 0
 	if err = os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
 		return
@@ -113,6 +131,10 @@ func (c *ChunkUpload) MergeAll(chunkFileNames []string, saveFileName string) (sa
 	}
 	savePath = filepath.Join(c.SaveDir, saveName)
 	c.savePath = savePath
+	saveDir := filepath.Dir(savePath)
+	if err = os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		return
+	}
 	// 打开之前上传文件
 	var file *os.File
 	file, err = os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
@@ -120,11 +142,35 @@ func (c *ChunkUpload) MergeAll(chunkFileNames []string, saveFileName string) (sa
 		err = fmt.Errorf("创建文件失败: %w", err)
 		return
 	}
-	defer file.Close()
 	uid := c.GetUIDString()
 	chunkFileDir := filepath.Join(c.TempDir, uid)
-	for _, chunkFileName := range chunkFileNames {
-		chunkFilePath := filepath.Join(chunkFileDir, chunkFileName)
+	totalFile := filepath.Join(chunkFileDir, saveFileName+".total")
+	defer os.Remove(totalFile)
+	if async {
+		file.Close()
+		wg := &sync.WaitGroup{}
+		mu := sync.RWMutex{}
+		for chunkIndex := uint64(0); chunkIndex < totalChunks; chunkIndex++ {
+			wg.Add(1)
+			go func(chunkIndex uint64) {
+				n, err := c.merge(chunkIndex, fileChunkBytes, saveFileName, savePath)
+				if err != nil {
+					log.Error(err)
+				} else {
+					mu.Lock()
+					c.saveSize += n
+					mu.Unlock()
+				}
+				wg.Done()
+			}(chunkIndex)
+		}
+		wg.Wait()
+		c.merged = true
+		return
+	}
+	defer file.Close()
+	for chunkIndex := uint64(0); chunkIndex < totalChunks; chunkIndex++ {
+		chunkFilePath := filepath.Join(chunkFileDir, fmt.Sprintf(`%s_%d`, saveFileName, chunkIndex))
 		cfile, cerr := os.Open(chunkFilePath)
 		if cerr != nil {
 			err = fmt.Errorf("分片文件“%s”打开失败: %w", chunkFilePath, cerr)
@@ -148,7 +194,6 @@ func (c *ChunkUpload) MergeAll(chunkFileNames []string, saveFileName string) (sa
 		}
 	}
 
-	err = c.RemoveFileSizeInfo(saveFileName)
 	c.merged = true
 	return
 }
@@ -167,53 +212,4 @@ func (c *ChunkUpload) GetFileSizeInfo(saveFileName string) (*FileSizeInfo, error
 		err = fmt.Errorf("%w: %s", err, string(b))
 	}
 	return result, err
-}
-
-func (c *ChunkUpload) SaveFileSizeInfo(info ChunkInfor, saveFileName string) error {
-	uid := c.GetUIDString()
-
-	flag := `chunkUpload.saveFileSizeInfo.` + uid + `.` + saveFileName
-	if !fileRWLock.CanSet(flag) {
-		fileRWLock.Wait(flag) // 需要等待创建完成
-		return nil
-	}
-	defer fileRWLock.Release(flag)
-
-	fsi := NewFileSizeInfo(info)
-	return c.saveFileSizeInfo(fsi, saveFileName)
-}
-
-func (c *ChunkUpload) saveFileSizeInfo(fsi *FileSizeInfo, saveFileName string) error {
-	uid := c.GetUIDString()
-	chunkFileDir := filepath.Join(c.TempDir, uid)
-	os.MkdirAll(chunkFileDir, os.ModePerm)
-	infoFilePath := filepath.Join(chunkFileDir, saveFileName+chunkInfoFileExtension)
-	fi, err := os.Stat(infoFilePath)
-	if err == nil && fi.Size() > 0 {
-		return err
-	}
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf(`创建分片信息文件“%s”失败: %w`, infoFilePath, err)
-	}
-	b, err := json.Marshal(fsi)
-	if err != nil {
-		return fmt.Errorf(`序列化分片信息文件“%s”失败: %w`, infoFilePath, err)
-	}
-	file, err := os.OpenFile(infoFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf(`创建分片信息文件“%s”失败: %w`, infoFilePath, err)
-	}
-	defer file.Close()
-	_, err = file.Write(b)
-	if err != nil {
-		return fmt.Errorf(`保存分片信息文件“%s”失败: %w`, infoFilePath, err)
-	}
-	return err
-}
-
-func (c *ChunkUpload) RemoveFileSizeInfo(saveFileName string) error {
-	uid := c.GetUIDString()
-	chunkFileDir := filepath.Join(c.TempDir, uid)
-	infoFilePath := filepath.Join(chunkFileDir, saveFileName+chunkInfoFileExtension)
-	return os.Remove(infoFilePath)
 }

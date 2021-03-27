@@ -36,6 +36,7 @@ var FormField = `file`
 func New() uploadClient.Client {
 	client := &Dropzone{}
 	client.BaseClient = uploadClient.New(client, FormField)
+	client.BaseClient.SetFieldMapping(MappingChunkInfo)
 	return client
 }
 

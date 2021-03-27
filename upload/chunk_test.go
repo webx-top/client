@@ -18,6 +18,7 @@ import (
 )
 
 func TestChunkUpload(t *testing.T) {
+	os.RemoveAll("../_testdata")
 	path := "../_testdata/test.txt" //要上传文件所在路径
 	os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	var file *os.File
@@ -95,6 +96,13 @@ func TestChunkUpload(t *testing.T) {
 	}
 	wg.Wait()
 	uploaded, err := ioutil.ReadFile(cu.GetSavePath())
+	/*
+		if err != nil || string(uploaded) != string(b) {
+			_, err = cu.MergeAll(uint64(chunks), uint64(chunkSize), filepath.Base(path), false)
+			test.Eq(t, nil, err)
+			uploaded, err = ioutil.ReadFile(cu.GetSavePath())
+		}
+		// */
 	test.Eq(t, nil, err)
 	test.Eq(t, string(b), string(uploaded))
 	//os.RemoveAll("../_testdata")

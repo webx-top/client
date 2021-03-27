@@ -88,12 +88,6 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 		saveStart = offset
 	}
 
-	// 记录文件信息
-	err = c.SaveFileSizeInfo(info, c.fileOriginalName)
-	if err != nil {
-		return 0, err
-	}
-
 	// 进行断点上传
 	// 打开之前上传文件
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
@@ -106,9 +100,11 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	// 将数据写入文件
 	total, err := uploadFile(upFile, start, file, saveStart)
 	if err == nil && total == chunkSize {
-		_, err = c.Merge(info, c.fileOriginalName)
-		if err != nil {
-			log.Error(err)
+		if c.isFinish(info, c.fileOriginalName) {
+			_, err = c.MergeAll(info.GetFileTotalChunks(), info.GetFileChunkBytes(), c.fileOriginalName, c.IsAsyncMerge())
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}
 	return total, err

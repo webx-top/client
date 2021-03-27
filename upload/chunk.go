@@ -1,13 +1,27 @@
 package upload
 
 import (
+	"database/sql"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/admpub/log"
 	"github.com/webx-top/com"
 	"github.com/webx-top/echo/param"
 )
 
-var fileRWLock = com.DoOnce{}
+var (
+	_fileRWLock com.Oncer
+	_fileRWOnce sync.Once
+)
+
+func fileRWLock() com.Oncer {
+	_fileRWOnce.Do(func() {
+		_fileRWLock = com.NewOnce()
+	})
+	return _fileRWLock
+}
 
 type ChunkUpload struct {
 	TempDir           string
@@ -19,6 +33,7 @@ type ChunkUpload struct {
 	savePath          string
 	saveSize          int64
 	merged            bool
+	asyncMerge        sql.NullBool // 以否采用异步方式进行合并
 }
 
 func (c *ChunkUpload) GetUIDString() string {
@@ -55,4 +70,38 @@ func (c *ChunkUpload) GetFileOriginalName() string {
 
 func (c *ChunkUpload) Merged() bool {
 	return c.merged
+}
+
+func (c *ChunkUpload) IsAsyncMerge() bool {
+	if !c.asyncMerge.Valid {
+		return true
+	}
+	return c.asyncMerge.Bool
+}
+
+func (c *ChunkUpload) SetAsyncMerge(async bool) *ChunkUpload {
+	c.asyncMerge.Bool = async
+	c.asyncMerge.Valid = true
+	return c
+}
+
+func (c *ChunkUpload) GC() error {
+	err := filepath.Walk(c.TempDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if time.Since(info.ModTime()) > c.TempLifetime {
+			rErr := os.Remove(path)
+			if rErr != nil {
+				log.Warnf(`[分片文件垃圾回收] %s 删除失败: %v`, path, rErr)
+			} else {
+				log.Infof(`[分片文件垃圾回收] %s 删除成功`, path)
+			}
+		}
+		return err
+	})
+	return err
 }

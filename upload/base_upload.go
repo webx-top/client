@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"os"
 
 	"github.com/admpub/checksum"
 	"github.com/admpub/log"
@@ -38,6 +39,39 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 		if a.err != nil {
 			return a
 		}
+		defer file.Close()
+	}
+	if a.chunkUpload != nil {
+		info := &ChunkInfo{
+			Mapping:     a.fieldMapping,
+			FileName:    options.Result.FileName,
+			CurrentSize: uint64(options.Result.FileSize),
+		}
+		info.CallbackBatchSet(func(name string) string {
+			return a.Form(name)
+		})
+		_, a.err = a.chunkUpload.ChunkUpload(info, file)
+		if a.err == nil { // 上传成功
+			if a.chunkUpload.Merged() {
+				var fp *os.File
+				fp, a.err = os.Open(a.chunkUpload.GetSavePath())
+				if a.err != nil {
+					return a
+				}
+				defer fp.Close()
+				a.err = a.saveFile(options.Result, fp, options)
+				if a.err != nil {
+					return a
+				}
+				// 上传到最终位置后删除合并后的文件
+				os.Remove(a.chunkUpload.GetSavePath())
+			}
+			return a
+		}
+		if !errors.Is(a.err, ErrChunkUnsupported) { // 上传出错
+			return a
+		}
+		// 不支持分片上传
 	}
 
 	a.err = a.saveFile(options.Result, file, options)
@@ -77,6 +111,10 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 			file.Close()
 			return a
 		}
+		result := &Result{
+			FileName: fileHdr.Filename,
+			FileSize: fileHdr.Size,
+		}
 		if a.chunkUpload != nil {
 			info := &ChunkInfo{
 				Mapping:     a.fieldMapping,
@@ -86,20 +124,30 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 			info.CallbackBatchSet(func(name string) string {
 				return a.Form(name)
 			})
-			_, err := a.chunkUpload.ChunkUpload(info, file)
-			if err == nil {
+			_, a.err = a.chunkUpload.ChunkUpload(info, file)
+			if a.err == nil { // 上传成功
 				file.Close()
+				if a.chunkUpload.Merged() {
+					file, a.err = os.Open(a.chunkUpload.GetSavePath())
+					if a.err != nil {
+						return a
+					}
+					a.err = a.saveFile(result, file, options)
+					file.Close()
+					if a.err != nil {
+						return a
+					}
+					// 上传到最终位置后删除合并后的文件
+					os.Remove(a.chunkUpload.GetSavePath())
+					a.Results.Add(result)
+				}
 				continue
 			}
-			if !errors.Is(err, ErrChunkUnsupported) {
-				a.err = err
+			if !errors.Is(a.err, ErrChunkUnsupported) { // 上传出错
 				file.Close()
 				return a
 			}
-		}
-		result := &Result{
-			FileName: fileHdr.Filename,
-			FileSize: fileHdr.Size,
+			// 不支持分片上传
 		}
 		err := a.saveFile(result, file, options)
 		file.Close()
