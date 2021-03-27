@@ -9,7 +9,6 @@ import (
 
 	"github.com/admpub/log"
 	"github.com/webx-top/echo"
-	"github.com/webx-top/echo/encoding/json"
 	"github.com/webx-top/echo/param"
 )
 
@@ -196,20 +195,4 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 
 	c.merged = true
 	return
-}
-
-func (c *ChunkUpload) GetFileSizeInfo(saveFileName string) (*FileSizeInfo, error) {
-	uid := c.GetUIDString()
-	chunkFileDir := filepath.Join(c.TempDir, uid)
-	infoFilePath := filepath.Join(chunkFileDir, saveFileName+chunkInfoFileExtension)
-	b, err := ioutil.ReadFile(infoFilePath)
-	if err != nil {
-		return nil, err
-	}
-	result := &FileSizeInfo{}
-	err = json.Unmarshal(b, result)
-	if err != nil {
-		err = fmt.Errorf("%w: %s", err, string(b))
-	}
-	return result, err
 }
