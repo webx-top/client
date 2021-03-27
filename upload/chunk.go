@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -35,6 +36,8 @@ type ChunkUpload struct {
 	saveSize          int64
 	merged            bool
 	asyncMerge        sql.NullBool // 以否采用异步方式进行合并
+	ctx               context.Context
+	cancel            context.CancelFunc
 }
 
 func (c *ChunkUpload) GetUIDString() string {
@@ -86,7 +89,29 @@ func (c *ChunkUpload) SetAsyncMerge(async bool) *ChunkUpload {
 	return c
 }
 
-func (c *ChunkUpload) GC() error {
+func (c *ChunkUpload) StartGC(inverval time.Duration) error {
+	c.ctx, c.cancel = context.WithCancel(context.TODO())
+	t := time.NewTicker(inverval)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			if err := c.gc(); err != nil {
+				return err
+			}
+		case <-c.ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (c *ChunkUpload) StopGC() {
+	if c.cancel != nil {
+		c.cancel()
+	}
+}
+
+func (c *ChunkUpload) gc() error {
 	err := filepath.Walk(c.TempDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
