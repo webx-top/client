@@ -1,7 +1,8 @@
 package ueditor
 
 import (
-	"github.com/admpub/errors"
+	"errors"
+	"fmt"
 
 	"github.com/webx-top/echo"
 )
@@ -73,7 +74,7 @@ func (a *Action) Handle(c echo.Context) (err error) {
 	}
 
 	if err != nil {
-		return errors.WithMessage(err, action)
+		return fmt.Errorf(`%s: %w`, action, err)
 	}
 	callback := c.Query(`callback`)
 	if len(callback) > 0 && callbackNameRegExp.MatchString(callback) {

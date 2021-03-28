@@ -6,7 +6,7 @@ require (
 	github.com/admpub/checksum v1.0.1
 	github.com/admpub/copier v0.0.1 // indirect
 	github.com/admpub/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
-	github.com/admpub/errors v0.8.2
+	github.com/admpub/errors v0.8.2 // indirect
 	github.com/admpub/events v0.0.0-20190913050400-383beb0843c6 // indirect
 	github.com/admpub/gifresize v1.0.2 // indirect
 	github.com/admpub/go-download/v2 v2.1.6 // indirect
