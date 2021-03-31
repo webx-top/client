@@ -39,6 +39,10 @@ type Sizer interface {
 	Size() int64
 }
 
+type SetBody interface {
+	SetBody(body io.Reader)
+}
+
 type SetReadCloser interface {
 	SetReadCloser(rc io.ReadCloser)
 }
@@ -74,6 +78,10 @@ func (w *wrapBodyWithSize) Read(p []byte) (n int, err error) {
 
 func (w *wrapBodyWithSize) Close() error {
 	return w.Body().Close()
+}
+
+func (w *wrapBodyWithSize) SetBody(body io.Reader) {
+	w.Request.SetBody(body)
 }
 
 type wrapFileWithSize struct {
