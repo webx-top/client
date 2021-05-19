@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/admpub/checksum v1.0.1
 	github.com/admpub/copier v0.0.1 // indirect
-	github.com/admpub/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
+	github.com/admpub/decimal v0.0.2 // indirect
 	github.com/admpub/errors v0.8.2 // indirect
 	github.com/admpub/events v1.2.0 // indirect
 	github.com/admpub/gifresize v1.0.2 // indirect
@@ -31,7 +31,7 @@ require (
 	github.com/webx-top/captcha v0.0.0-20161202061115-29e9e7f30aa0 // indirect
 	github.com/webx-top/com v0.2.0
 	github.com/webx-top/db v1.2.0
-	github.com/webx-top/echo v2.12.0+incompatible
+	github.com/webx-top/echo v2.13.1+incompatible
 	github.com/webx-top/image v0.0.8
 	github.com/webx-top/pagination v0.1.0 // indirect
 	github.com/webx-top/tagfast v0.0.0-20161020041435-9a2065ce3dd2 // indirect
