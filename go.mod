@@ -21,9 +21,8 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/webx-top/com v0.2.1
-	github.com/webx-top/db v1.3.9
-	github.com/webx-top/echo v2.13.10+incompatible
+	github.com/webx-top/db v1.4.0
+	github.com/webx-top/echo v2.14.3+incompatible
 	github.com/webx-top/image v0.0.8
 	golang.org/x/image v0.0.0-20210504121937-7319ad40d33e // indirect
-	golang.org/x/sys v0.0.0-20210601080250-7ecdf8ef093b // indirect
 )
