@@ -186,6 +186,7 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 					c.saveSize += n
 					mu.Unlock()
 				}
+				file.Close()
 			}(chunkIndex)
 		}
 		wg.Wait()
