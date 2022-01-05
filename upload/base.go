@@ -132,6 +132,10 @@ func (a *BaseClient) GetRespData() interface{} {
 	return a.RespData
 }
 
+func (a *BaseClient) GetUploadResult() *Result {
+	return a.Data
+}
+
 func (a *BaseClient) GetBatchUploadResults() Results {
 	return a.Results
 }

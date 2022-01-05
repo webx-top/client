@@ -45,6 +45,7 @@ type Client interface {
 	Body() (ReadCloserWithSize, error)
 	Upload(...OptionsSetter) Client
 	BatchUpload(...OptionsSetter) Client
+	GetUploadResult() *Result
 	GetBatchUploadResults() Results
 
 	//构建结果
