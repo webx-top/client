@@ -31,7 +31,7 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 	defer body.Close()
 	uploadMaxSize := options.MaxSize
 	if uploadMaxSize <= 0 {
-		uploadMaxSize = a.uploadMaxSize
+		uploadMaxSize = a.UploadMaxSize()
 	}
 	if body.Size() > uploadMaxSize {
 		a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(uploadMaxSize))
@@ -110,7 +110,7 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 	}
 	uploadMaxSize := options.MaxSize
 	if uploadMaxSize <= 0 {
-		uploadMaxSize = a.uploadMaxSize
+		uploadMaxSize = a.UploadMaxSize()
 	}
 	for _, fileHdr := range files {
 		//for each fileheader, get a handle to the actual file
