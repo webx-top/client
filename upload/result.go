@@ -3,6 +3,7 @@ package upload
 import (
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"time"
 )
@@ -11,7 +12,8 @@ import (
 type Results []*Result
 
 // Checker 上传合法性检查
-type Checker func(r *Result) error
+type Checker func(rs *Result, rd io.Reader) error
+type Callback func(*Result, io.Reader, io.Reader) error
 
 var (
 	// ErrExistsFile 文件已存在
