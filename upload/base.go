@@ -32,7 +32,7 @@ type BaseClient struct {
 	RespData      interface{}
 	Results       Results
 	err           error
-	uploadMaxSize int64
+	uploadMaxSize int64 // 单位字节 (0 代表未设置，小于 0 代表不限制)
 	readBefore    []ReadBeforeHook
 	chunkUpload   *ChunkUpload
 	fieldMapping  map[string]string
