@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/admpub/log"
+	"github.com/webx-top/com"
 	"github.com/webx-top/echo/testing/test"
 )
 
@@ -138,4 +139,29 @@ func TestChunkUploadSyncMergeAll(t *testing.T) {
 
 func TestChunkUploadGraduallyMerge(t *testing.T) {
 	testChunkUpload(t, true)
+}
+
+func TestChunkUploadParseHeader(t *testing.T) {
+	ci := &ChunkInfo{}
+	found := ci.parseHeader(`bytes 500-999/67589`)
+	com.Dump(ci)
+	test.True(t, found)
+	test.Eq(t, uint64(500), ci.ChunkOffsetBytes)
+	test.Eq(t, uint64(999), ci.ChunkEndBytes)
+	test.Eq(t, uint64(67589), ci.FileTotalBytes)
+	test.Eq(t, uint64(2), ci.ChunkIndex)
+	test.Eq(t, uint64(135), ci.FileTotalChunks)
+	test.Eq(t, uint64(500), ci.CurrentSize)
+	test.Eq(t, uint64(500), ci.FileChunkBytes)
+
+	found = ci.parseHeader(`bytes 1000-1499/67589`)
+	com.Dump(ci)
+	test.True(t, found)
+	test.Eq(t, uint64(1000), ci.ChunkOffsetBytes)
+	test.Eq(t, uint64(1499), ci.ChunkEndBytes)
+	test.Eq(t, uint64(67589), ci.FileTotalBytes)
+	test.Eq(t, uint64(3), ci.ChunkIndex)
+	test.Eq(t, uint64(135), ci.FileTotalChunks)
+	test.Eq(t, uint64(500), ci.CurrentSize)
+	test.Eq(t, uint64(500), ci.FileChunkBytes)
 }
