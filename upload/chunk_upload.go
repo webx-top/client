@@ -136,6 +136,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 				var finished bool
 				finished, err = c.isFinish(info, c.fileOriginalName)
 				if finished {
+					err = c.clearChunk(info.GetFileTotalChunks(), c.fileOriginalName)
 					c.merged = true
 					c.saveSize = int64(info.GetFileTotalBytes())
 				}
