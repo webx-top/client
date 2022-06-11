@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -21,7 +20,7 @@ import (
 )
 
 func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
-	log.SetLevel(`Warn`)
+	log.SetLevel(`Debug`)
 	log.Sync()
 	var subdir string
 	if graduallyMerge {
@@ -58,8 +57,8 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 	chunks := 15
 	chunkSize := len(b) / chunks
 	cu := &ChunkUpload{
-		TempDir:        `../_testdata` + subdir + `/tmp`,
-		SaveDir:        `../_testdata` + subdir + `/upload/`,
+		TempDir:        `../_testdata` + subdir + `/chunk_temp`,
+		SaveDir:        `../_testdata` + subdir + `/chunk_merged`,
 		GraduallyMerge: graduallyMerge,
 	}
 	if len(asyncMergeAll) > 0 {
@@ -71,7 +70,8 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 		//chunkStartTime := time.Now()
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		part, err := writer.CreateFormFile("file", filepath.Base(path))
+		filename := filepath.Base(path)
+		part, err := writer.CreateFormFile("file", filename)
 		if err != nil {
 			writer.Close()
 			t.Error(err)
@@ -81,7 +81,6 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 
 		req := httptest.NewRequest("POST", "/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
-		res := httptest.NewRecorder()
 		req.Form = make(url.Values)
 		req.Form.Add(`chunkIndex`, fmt.Sprintf(`%d`, chunkIndex))
 		req.Form.Add(`fileTotalChunks`, fmt.Sprintf(`%d`, chunks))
@@ -90,11 +89,12 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 		n, err := cu.Upload(req)
 		test.Eq(t, nil, err)
 		test.NotEq(t, 0, n)
-		if res.Code != http.StatusOK {
-			t.Error("not 200")
+		if !graduallyMerge {
+			chunkTempFile := cu.ChunkFilename(chunkIndex)
+			if _, err := os.Stat(chunkTempFile); err != nil {
+				t.Log(err)
+			}
 		}
-
-		t.Log(res.Body.String())
 		wg.Done()
 		//log.Warn(subdir + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
 	}

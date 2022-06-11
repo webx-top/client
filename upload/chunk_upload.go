@@ -59,6 +59,10 @@ func (c *ChunkUpload) check(info ChunkInfor, ignoreCurrentSize ...bool) error {
 	return nil
 }
 
+func (c *ChunkUpload) ChunkFilename(chunkIndex int) string {
+	return filepath.Join(c.TempDir, c.GetUIDString(), fmt.Sprintf("%s_%d", c.fileOriginalName, chunkIndex))
+}
+
 // 分片上传
 func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
 	if err := c.check(info); err != nil {
@@ -73,6 +77,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 			return 0, ErrFileUploadCompleted
 		}
 	}
+
 	chunkSize := int64(info.GetCurrentSize())
 
 	uid := c.GetUIDString()
