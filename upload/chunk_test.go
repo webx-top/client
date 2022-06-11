@@ -19,13 +19,11 @@ import (
 	"github.com/webx-top/echo/testing/test"
 )
 
-func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
-	log.SetLevel(`Debug`)
+func testChunkUpload(t *testing.T, asyncMergeAll bool) {
+	log.SetLevel(`Warn`)
 	log.Sync()
 	var subdir string
-	if graduallyMerge {
-		subdir = `/graduallyMerge`
-	} else if len(asyncMergeAll) > 0 && asyncMergeAll[0] {
+	if asyncMergeAll {
 		subdir = `/asyncMergeAll`
 	} else {
 		subdir = `/syncMergeAll`
@@ -57,13 +55,10 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 	chunks := 15
 	chunkSize := len(b) / chunks
 	cu := &ChunkUpload{
-		TempDir:        `../_testdata` + subdir + `/chunk_temp`,
-		SaveDir:        `../_testdata` + subdir + `/chunk_merged`,
-		GraduallyMerge: graduallyMerge,
+		TempDir: `../_testdata` + subdir + `/chunk_temp`,
+		SaveDir: `../_testdata` + subdir + `/chunk_merged`,
 	}
-	if len(asyncMergeAll) > 0 {
-		cu.SetAsyncMerge(asyncMergeAll[0])
-	}
+	cu.SetAsyncMerge(asyncMergeAll)
 	wg := &sync.WaitGroup{}
 	wg.Add(chunks)
 	upload := func(r io.Reader, chunkIndex int) {
@@ -89,11 +84,9 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 		n, err := cu.Upload(req)
 		test.Eq(t, nil, err)
 		test.NotEq(t, 0, n)
-		if !graduallyMerge {
-			chunkTempFile := cu.ChunkFilename(chunkIndex)
-			if _, err := os.Stat(chunkTempFile); err != nil {
-				t.Log(err)
-			}
+		chunkTempFile := cu.ChunkFilename(chunkIndex)
+		if _, err := os.Stat(chunkTempFile); err != nil {
+			t.Log(err)
 		}
 		wg.Done()
 		//log.Warn(subdir + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
@@ -130,15 +123,11 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 }
 
 func TestChunkUploadAsyncMergeAll(t *testing.T) {
-	testChunkUpload(t, false, true)
+	testChunkUpload(t, true)
 }
 
 func TestChunkUploadSyncMergeAll(t *testing.T) {
-	testChunkUpload(t, false, false)
-}
-
-func TestChunkUploadGraduallyMerge(t *testing.T) {
-	testChunkUpload(t, true)
+	testChunkUpload(t, false)
 }
 
 func TestChunkUploadParseHeader(t *testing.T) {

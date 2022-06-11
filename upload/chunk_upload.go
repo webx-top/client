@@ -70,7 +70,7 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	}
 
 	c.fileOriginalName = filepath.Base(info.GetFileName())
-	if !c.GraduallyMerge && len(c.savePath) > 0 && filepath.Base(c.savePath) == c.fileOriginalName {
+	if len(c.savePath) > 0 && filepath.Base(c.savePath) == c.fileOriginalName {
 		fi, err := os.Stat(c.savePath)
 		if err == nil && fi.Size() == int64(info.GetFileTotalBytes()) {
 			c.saveSize = fi.Size()
@@ -128,21 +128,6 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	file.Close()
 
 	if err == nil && total == chunkSize {
-		if c.GraduallyMerge {
-			err = c.Merge(info.GetChunkIndex(), info.GetFileChunkBytes(), c.fileOriginalName)
-			if err != nil {
-				log.Error(err)
-			} else {
-				var finished bool
-				finished, err = c.isFinish(info, c.fileOriginalName)
-				if finished {
-					err = c.clearChunk(info.GetFileTotalChunks(), c.fileOriginalName)
-					c.merged = true
-					c.saveSize = int64(info.GetFileTotalBytes())
-				}
-			}
-			return total, err
-		}
 		var finished bool
 		finished, err = c.isFinish(info, c.fileOriginalName)
 		if finished {
