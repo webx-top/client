@@ -2,7 +2,6 @@ package upload
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,7 +12,7 @@ import (
 )
 
 // 合并切片文件
-func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, file *os.File, savePath string) (int64, error) {
+func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, file *os.File) (int64, error) {
 	uid := c.GetUIDString()
 	// 设置文件写入偏移量
 	file.Seek(int64(fileChunkBytes*chunkIndex), 0)
@@ -35,45 +34,32 @@ func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, file *os.F
 		return n, fmt.Errorf("%w: %s: %v", ErrChunkFileMergeFailed, chunkFilePath, err)
 	}
 
-	// 删除文件 需要先关闭该文件
-	err = os.Remove(chunkFilePath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return n, fmt.Errorf("%w: %s: %v", ErrChunkFileDeleteFailed, chunkFilePath, err)
-		}
-		err = nil
-	}
 	log.Debugf("分片文件合并成功: %s", chunkFilePath)
 	return n, err
 }
 
-// 判断是否完成  根据现有文件的大小 与 上传文件大小进行匹配
-func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
+func (c *ChunkUpload) clearChunk(chunkTotal uint64, fileName string) error {
+	uid := c.GetUIDString()
+	chunkFileDir := filepath.Join(c.TempDir, uid)
+	for i := uint64(0); i < chunkTotal; i++ {
+		chunkFile := filepath.Join(chunkFileDir, fileName+"_"+param.AsString(i))
+		log.Debugf("删除分片文件: %s", chunkFile)
+		err := os.Remove(chunkFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("%w: %s: %v", ErrChunkFileDeleteFailed, chunkFile, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) (bool, error) {
 	fileSize := info.GetFileTotalBytes()
 	uid := c.GetUIDString()
 	chunkFileDir := filepath.Join(c.TempDir, uid)
-	totalFile := filepath.Join(chunkFileDir, fileName+".total")
-	flag := `chunkUpload.saveFileSizeInfo.` + uid + `.` + fileName
-	if !fileRWLock().CanSet(flag) {
-		fileRWLock().Wait(flag) // 需要等待创建完成
-		b, err := ioutil.ReadFile(totalFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Errorf(`读取分片统计结果文件出错: %s: %v`, totalFile, err)
-			}
-			return false
-		}
-		chunkSize := param.AsInt64(string(b))
-		if log.IsEnabled(log.LevelDebug) {
-			log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize, `wait`: true}, false))
-		}
-		if chunkSize == int64(fileSize) {
-			return false // 说明以前的已经判断为完成了，后面堵塞住的统一返回false避免重复执行
-		}
-		return c.isFinish(info, fileName)
-	}
-	defer fileRWLock().Release(flag)
 	var chunkSize int64
+	var err error
 	chunkTotal := info.GetFileTotalChunks()
 	for i := uint64(0); i < chunkTotal; i++ {
 		chunkFile := filepath.Join(chunkFileDir, fileName+"_"+param.AsString(i))
@@ -81,20 +67,17 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
 		fi, err := os.Stat(chunkFile)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				log.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+				err = fmt.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+				return false, err
 			}
-			return false
+		} else {
+			chunkSize += fi.Size()
 		}
-		chunkSize += fi.Size()
 	}
 	if log.IsEnabled(log.LevelDebug) {
 		log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize}, false))
 	}
-	err := ioutil.WriteFile(totalFile, []byte(param.AsString(chunkSize)), os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-	return chunkSize == int64(fileSize)
+	return chunkSize == int64(fileSize), err
 }
 
 func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
@@ -113,43 +96,34 @@ func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
 }
 
 func (c *ChunkUpload) Merge(chunkIndex uint64, fileChunkBytes uint64, fileName string) (err error) {
-	uid := c.GetUIDString()
-	flag := `chunkUpload.merge.` + uid + `.` + fileName
-	if !fileRWLock().CanSet(flag) {
-		fileRWLock().Wait(flag) // 需要等待创建完成
-		var file *os.File
-		file, err = os.OpenFile(c.savePath, os.O_WRONLY, os.ModePerm)
-		if err != nil {
-			err = fmt.Errorf("%w: %s: %v (merge)", ErrChunkMergeFileCreateFailed, c.savePath, err)
-			return
-		}
-		c.saveSize, err = c.merge(chunkIndex, fileChunkBytes, file, c.savePath)
-		file.Close()
+	if err := os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
 		return err
 	}
-
-	if err = os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
-		fileRWLock().Release(flag)
-		return
+	if err := c.prepareSavePath(fileName); err != nil {
+		return err
 	}
-	if err = c.prepareSavePath(fileName); err != nil {
-		fileRWLock().Release(flag)
-		return
-	}
-	var file *os.File
-	file, err = os.OpenFile(c.savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	fileRWLock().Release(flag)
+	file, err := os.OpenFile(c.savePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		err = fmt.Errorf("%w: %s: %v (merge)", ErrChunkMergeFileCreateFailed, c.savePath, err)
-		return
+		return err
 	}
-	c.saveSize, err = c.merge(chunkIndex, fileChunkBytes, file, c.savePath)
+	c.saveSize, err = c.merge(chunkIndex, fileChunkBytes, file)
 	file.Close()
 	return err
 }
 
 // 合并某个文件的所有切片
 func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (err error) {
+	uid := c.GetUIDString()
+	flag := `chunkUpload.merge.` + uid + `.` + saveFileName
+	_, err, _ = fileSG.Do(flag, func() (interface{}, error) {
+		err := c.mergeAll(totalChunks, fileChunkBytes, saveFileName, async)
+		return nil, err
+	})
+	return
+}
+
+func (c *ChunkUpload) mergeAll(totalChunks uint64, fileChunkBytes uint64, saveFileName string, async bool) (err error) {
 	c.saveSize = 0
 	if err = os.MkdirAll(c.SaveDir, os.ModePerm); err != nil {
 		return
@@ -166,8 +140,6 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 	}
 	uid := c.GetUIDString()
 	chunkFileDir := filepath.Join(c.TempDir, uid)
-	totalFile := filepath.Join(chunkFileDir, saveFileName+".total")
-	defer os.Remove(totalFile)
 	if async {
 		file.Close()
 		wg := &sync.WaitGroup{}
@@ -181,7 +153,7 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 					log.Errorf("%v: %s: %v (mergeAll)", ErrChunkMergeFileCreateFailed, c.savePath, err)
 					return
 				}
-				n, err := c.merge(chunkIndex, fileChunkBytes, file, c.savePath)
+				n, err := c.merge(chunkIndex, fileChunkBytes, file)
 				file.Close()
 				if err != nil {
 					log.Error(err)
@@ -195,6 +167,7 @@ func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, saveFi
 		wg.Wait()
 		c.merged = true
 		log.Debugf("分片文件合并完毕: %s", c.savePath)
+		err = c.clearChunk(totalChunks, saveFileName)
 		return
 	}
 	defer file.Close()

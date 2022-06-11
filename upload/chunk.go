@@ -5,25 +5,14 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/admpub/log"
-	"github.com/webx-top/com"
 	"github.com/webx-top/echo/param"
+	"golang.org/x/sync/singleflight"
 )
 
-var (
-	_fileRWLock com.Oncer
-	_fileRWOnce sync.Once
-)
-
-func fileRWLock() com.Oncer {
-	_fileRWOnce.Do(func() {
-		_fileRWLock = com.NewOnce()
-	})
-	return _fileRWLock
-}
+var fileSG singleflight.Group
 
 type ChunkUpload struct {
 	TempDir           string

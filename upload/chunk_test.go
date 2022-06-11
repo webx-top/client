@@ -130,11 +130,11 @@ func testChunkUpload(t *testing.T, graduallyMerge bool, asyncMergeAll ...bool) {
 }
 
 func TestChunkUploadAsyncMergeAll(t *testing.T) {
-	testChunkUpload(t, false, true)
+	//testChunkUpload(t, false, true)
 }
 
 func TestChunkUploadSyncMergeAll(t *testing.T) {
-	testChunkUpload(t, false, false)
+	//testChunkUpload(t, false, false)
 }
 
 func TestChunkUploadGraduallyMerge(t *testing.T) {
