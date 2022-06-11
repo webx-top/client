@@ -20,7 +20,7 @@ var (
 
 func fileRWLock() com.Oncer {
 	_fileRWOnce.Do(func() {
-		_fileRWLock = com.NewOnce()
+		_fileRWLock = com.NewOnce(0)
 	})
 	return _fileRWLock
 }

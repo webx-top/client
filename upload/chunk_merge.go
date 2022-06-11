@@ -48,7 +48,7 @@ func (c *ChunkUpload) merge(chunkIndex uint64, fileChunkBytes uint64, file *os.F
 }
 
 // 判断是否完成  根据现有文件的大小 与 上传文件大小进行匹配
-func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
+func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) (bool, error) {
 	fileSize := info.GetFileTotalBytes()
 	uid := c.GetUIDString()
 	chunkFileDir := filepath.Join(c.TempDir, uid)
@@ -59,16 +59,16 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
 		b, err := ioutil.ReadFile(totalFile)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				log.Errorf(`读取分片统计结果文件出错: %s: %v`, totalFile, err)
+				err = fmt.Errorf(`读取分片统计结果文件出错: %s: %v`, totalFile, err)
 			}
-			return false
+			return false, err
 		}
 		chunkSize := param.AsInt64(string(b))
 		if log.IsEnabled(log.LevelDebug) {
 			log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize, `wait`: true}, false))
 		}
 		if chunkSize == int64(fileSize) {
-			return false // 说明以前的已经判断为完成了，后面堵塞住的统一返回false避免重复执行
+			return false, nil // 说明以前的已经判断为完成了，后面堵塞住的统一返回false避免重复执行
 		}
 		return c.isFinish(info, fileName)
 	}
@@ -81,20 +81,18 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) bool {
 		fi, err := os.Stat(chunkFile)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				log.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+				err = fmt.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+				return false, err
 			}
-			return false
+		} else {
+			chunkSize += fi.Size()
 		}
-		chunkSize += fi.Size()
 	}
 	if log.IsEnabled(log.LevelDebug) {
 		log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize}, false))
 	}
 	err := ioutil.WriteFile(totalFile, []byte(param.AsString(chunkSize)), os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-	return chunkSize == int64(fileSize)
+	return chunkSize == int64(fileSize), err
 }
 
 func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
