@@ -19,21 +19,30 @@ import (
 	"github.com/webx-top/echo/testing/test"
 )
 
-func testChunkUpload(t *testing.T, asyncMergeAll bool) {
-	log.SetLevel(`Warn`)
+func init() {
+	log.SetLevel(`Debug`)
 	log.Sync()
+	path := "../_testdata/"
+	os.RemoveAll(path)
+}
+
+func testChunkUpload(t *testing.T, asyncMergeAll bool, index ...int) {
 	var subdir string
 	if asyncMergeAll {
 		subdir = `/asyncMergeAll`
 	} else {
 		subdir = `/syncMergeAll`
 	}
-	os.RemoveAll("../_testdata" + subdir)
-	path := "../_testdata" + subdir + "/test.txt" //要上传文件所在路径
-	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	path := "../_testdata" + subdir + "/" //要上传文件所在路径
+	os.MkdirAll(path, os.ModePerm)
+	if len(index) > 0 {
+		path += fmt.Sprintf(`test_%d.txt`, index[0])
+	} else {
+		path += `test.txt`
+	}
 	var file *os.File
 	var err error
-	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+	if _, err = os.Stat(path); err != nil && os.IsNotExist(err) {
 		file, err = os.Create(path)
 		if err != nil {
 			t.Error(err)
@@ -128,6 +137,18 @@ func TestChunkUploadAsyncMergeAll(t *testing.T) {
 
 func TestChunkUploadSyncMergeAll(t *testing.T) {
 	testChunkUpload(t, false)
+}
+
+func TestChunkUploadSyncMergeAllBatch(t *testing.T) {
+	wg := sync.WaitGroup{}
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(i int) {
+			testChunkUpload(t, false, i)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
 }
 
 func TestChunkUploadParseHeader(t *testing.T) {
