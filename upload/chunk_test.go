@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	log.SetLevel(`Debug`)
+	log.SetLevel(`Warn`)
 	log.Sync()
 	path := "../_testdata/"
 	os.RemoveAll(path)
