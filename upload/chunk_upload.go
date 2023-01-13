@@ -141,10 +141,12 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	}
 	start := size
 	saveStart := size
-	offset := int64(info.GetChunkOffsetBytes())
-	if offset > 0 {
-		start = 0
-		saveStart = offset
+	if size > 0 {
+		offset := int64(info.GetChunkOffsetBytes())
+		if offset > 0 && offset <= chunkSize {
+			start = 0
+			saveStart = offset
+		}
 	}
 
 	// 进行断点上传
