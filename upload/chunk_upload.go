@@ -135,6 +135,10 @@ func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64,
 	if size == chunkSize {
 		return 0, fmt.Errorf("%w: %s (size: %d bytes)", ErrChunkUploadCompleted, filepath.Base(filePath), size)
 	}
+	if size > chunkSize { // 清理异常尺寸分片文件
+		size = 0
+		os.Remove(filePath)
+	}
 	start := size
 	saveStart := size
 	offset := int64(info.GetChunkOffsetBytes())
