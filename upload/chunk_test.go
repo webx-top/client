@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http/httptest"
 	"net/url"
@@ -19,7 +18,7 @@ import (
 )
 
 func init() {
-	log.SetLevel(`Warn`)
+	log.SetLevel(`Debug`)
 	log.Sync()
 	path := "../_testdata/"
 	os.RemoveAll(path)
@@ -57,7 +56,7 @@ func testChunkUpload(t *testing.T, index ...int) {
 	//os.RemoveAll("../_testdata")
 }
 
-func _TestRealFile(t *testing.T) {
+func TestRealFile(t *testing.T) {
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
@@ -72,7 +71,7 @@ func _TestRealFile(t *testing.T) {
 
 func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chunkSize int) {
 	file.Seek(0, 0)
-	b, err := ioutil.ReadAll(file)
+	b, err := io.ReadAll(file)
 	test.Eq(t, nil, err)
 	cu := &ChunkUpload{
 		TempDir: `../_testdata` + subdir + `/chunk_temp`,
@@ -134,7 +133,7 @@ func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chun
 	}
 	wg.Wait()
 	log.Warn(subdir + ` elapsed: ` + time.Since(startTime).String())
-	uploaded, err := ioutil.ReadFile(cu.GetSavePath())
+	uploaded, err := os.ReadFile(cu.GetSavePath())
 	test.Eq(t, nil, err)
 	test.Eq(t, len(b), len(uploaded))
 }
