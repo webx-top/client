@@ -43,6 +43,25 @@ func (c *ChunkUpload) IsSupported(info ChunkInfor) bool {
 	return !errors.Is(err, ErrChunkUnsupported)
 }
 
+func (c *ChunkUpload) checkSize(info ChunkInfor) error {
+	if c.FileMaxBytes > 0 && info.GetFileTotalBytes() > c.FileMaxBytes {
+		return fmt.Errorf(`%w: %d>%d `, ErrFileSizeExceedsLimit, info.GetFileTotalBytes(), c.FileMaxBytes)
+	}
+	if info.GetChunkIndex() == info.GetFileTotalChunks()-1 {
+		chunksNoLast := info.GetFileTotalChunks() - 1
+		chunkSize := (info.GetFileTotalBytes() - info.GetFileChunkBytes()) / chunksNoLast
+		if chunksNoLast*chunkSize+info.GetFileChunkBytes() != info.GetFileTotalBytes() {
+			return fmt.Errorf(`%w: 文件的最后一个分片尺寸(%d)不正确`, ErrIncorrectSize, info.GetFileChunkBytes())
+		}
+	} else {
+		subtotal := (info.GetChunkIndex() + 1) * info.GetFileChunkBytes()
+		if subtotal >= info.GetFileTotalBytes() {
+			return fmt.Errorf(`%w: 文件的分片尺寸与分片数量的乘积已经超过了总尺寸(%d>=%d)`, ErrIncorrectSize, subtotal, info.GetFileTotalBytes())
+		}
+	}
+	return nil
+}
+
 func (c *ChunkUpload) check(info ChunkInfor, ignoreCurrentSize ...bool) error {
 	if info.GetFileTotalBytes() < 1 {
 		return fmt.Errorf(`%w: FileTotalBytes less than 1`, ErrChunkUnsupported)
@@ -63,9 +82,18 @@ func (c *ChunkUpload) ChunkFilename(chunkIndex int) string {
 	return filepath.Join(c.TempDir, c.GetUIDString(), fmt.Sprintf("%s_%d", c.fileOriginalName, chunkIndex))
 }
 
+func (c *ChunkUpload) Validate(info ChunkInfor) error {
+	err := c.check(info)
+	if err != nil {
+		return err
+	}
+	err = c.checkSize(info)
+	return err
+}
+
 // 分片上传
 func (c *ChunkUpload) ChunkUpload(info ChunkInfor, upFile io.ReadSeeker) (int64, error) {
-	if err := c.check(info); err != nil {
+	if err := c.Validate(info); err != nil {
 		return 0, err
 	}
 
