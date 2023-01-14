@@ -64,73 +64,71 @@ func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string, counter ...*int
 	chunkFileDir := filepath.Join(c.TempDir, uid)
 	totalFile := c.totalFile(chunkFileDir, fileName)
 	flag := `chunkUpload.saveFileSizeInfo.` + uid + `.` + fileName
-	if !fileRWLock().CanSet(flag) {
-		fileRWLock().Wait(flag) // 需要等待创建完成
+	value, err, shared := chunkSg.Do(flag, func() (interface{}, error) {
+		var finishedSize uint64
 		b, err := os.ReadFile(totalFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				err = fmt.Errorf(`读取分片统计结果文件出错: %s: %v`, totalFile, err)
-			} else {
-				err = nil
+		if err == nil {
+			finishedSize = param.AsUint64(string(b))
+			if finishedSize == fileSize {
+				return fileSize, err
 			}
-			return false, err
 		}
-		chunkSize := param.AsUint64(string(b))
-		if len(counter) == 0 {
-			retries := 0
-			counter = []*int{&retries}
-		} else {
-			*(counter[0])++
+		err = nil
+		finishedSize = 0
+		var finishedCount uint64
+		chunkTotal := info.GetFileTotalChunks()
+		for i := uint64(0); i < chunkTotal; i++ {
+			chunkFile := filepath.Join(chunkFileDir, fileName+"_"+param.AsString(i))
+			// 分片大小获取
+			fi, err := os.Stat(chunkFile)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					err = fmt.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+					return finishedSize, err
+				}
+			} else {
+				finishedSize += uint64(fi.Size())
+				if c.existsFinishedFlag(chunkFileDir, fileName, i, fi.ModTime()) {
+					finishedCount++
+				}
+			}
 		}
 		if log.IsEnabled(log.LevelDebug) {
-			log.Debug(echo.Dump(echo.H{
-				`chunkSize`: chunkSize, `fileSize`: fileSize, `wait`: true, `retries`: *(counter[0]),
-				`fileName`: fileName + `_` + strconv.FormatUint(info.GetChunkIndex(), 10),
-			}, false))
+			log.Debug(echo.Dump(echo.H{`finishedSize`: finishedSize, `fileSize`: fileSize, `finishedCount`: finishedCount}, false))
 		}
-		if chunkSize == fileSize {
-			return false, nil // 说明以前的已经判断为完成了，后面堵塞住的统一返回false避免重复执行
+		if finishedCount == chunkTotal {
+			if finishedSize != fileSize {
+				finishedSize = fileSize
+			}
 		}
-		if *(counter[0]) > 1000 {
-			return false, nil
+		if finishedSize > 0 {
+			err = os.WriteFile(totalFile, []byte(param.AsString(finishedSize)), os.ModePerm)
 		}
-		log.Debugf(`[isFinish()] %s_%d retry: %d`, fileName, info.GetChunkIndex(), *(counter[0]))
-		time.Sleep(time.Millisecond * 20)
-		return c.isFinish(info, fileName, counter...)
+		return finishedSize, err
+	})
+	finishedSize := value.(uint64)
+	finished := finishedSize == fileSize
+	if err != nil || finished || !shared {
+		return finished, err
 	}
-	defer fileRWLock().Release(flag)
-	var chunkSize uint64
-	var finishedCount uint64
-	chunkTotal := info.GetFileTotalChunks()
-	for i := uint64(0); i < chunkTotal; i++ {
-		chunkFile := filepath.Join(chunkFileDir, fileName+"_"+param.AsString(i))
-		// 分片大小获取
-		fi, err := os.Stat(chunkFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				err = fmt.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
-				return false, err
-			}
-		} else {
-			chunkSize += uint64(fi.Size())
-			if c.existsFinishedFlag(chunkFileDir, fileName, i, fi.ModTime()) {
-				finishedCount++
-			}
-		}
+	if len(counter) == 0 {
+		retries := 0
+		counter = []*int{&retries}
+	} else {
+		*(counter[0])++
 	}
 	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(echo.Dump(echo.H{`chunkSize`: chunkSize, `fileSize`: fileSize, `finishedCount`: finishedCount}, false))
+		log.Debug(echo.Dump(echo.H{
+			`finishedSize`: finishedSize, `fileSize`: fileSize, `wait`: true, `retries`: *(counter[0]),
+			`fileName`: fileName + `_` + strconv.FormatUint(info.GetChunkIndex(), 10),
+		}, false))
 	}
-	if finishedCount == chunkTotal {
-		if chunkSize != fileSize {
-			chunkSize = fileSize
-		}
+	if *(counter[0]) > 3 {
+		return false, nil
 	}
-	var err error
-	if chunkSize > 0 {
-		err = os.WriteFile(totalFile, []byte(param.AsString(chunkSize)), os.ModePerm)
-	}
-	return chunkSize == fileSize, err
+	log.Debugf(`[isFinish()] %s_%d retry: %d`, fileName, info.GetChunkIndex(), *(counter[0]))
+	time.Sleep(time.Millisecond * 20)
+	return c.isFinish(info, fileName, counter...)
 }
 
 func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
@@ -152,12 +150,10 @@ func (c *ChunkUpload) prepareSavePath(saveFileName string) error {
 func (c *ChunkUpload) MergeAll(totalChunks uint64, fileChunkBytes uint64, fileTotalBytes uint64, saveFileName string) (err error) {
 	uid := c.GetUIDString()
 	flag := `chunkUpload.mergeAll.` + uid + `.` + saveFileName
-	if !fileRWLock().CanSet(flag) {
-		return
-	}
-
-	err = c.mergeAll(totalChunks, fileChunkBytes, fileTotalBytes, saveFileName)
-	fileRWLock().Release(flag)
+	_, err, _ = chunkSg.Do(flag, func() (interface{}, error) {
+		err := c.mergeAll(totalChunks, fileChunkBytes, fileTotalBytes, saveFileName)
+		return nil, err
+	})
 	return
 }
 

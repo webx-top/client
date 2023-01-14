@@ -56,7 +56,7 @@ func testChunkUpload(t *testing.T, index ...int) {
 	//os.RemoveAll("../_testdata")
 }
 
-func _TestRealFile(t *testing.T) {
+func TestRealFile(t *testing.T) {
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
@@ -107,10 +107,6 @@ func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chun
 		n, err := cu.Upload(req)
 		test.Eq(t, nil, err)
 		test.NotEq(t, 0, n)
-		chunkTempFile := cu.ChunkFilename(chunkIndex)
-		if _, err := os.Stat(chunkTempFile); err != nil {
-			t.Log(err)
-		}
 		wg.Done()
 		//log.Warn(subdir + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
 	}
