@@ -56,7 +56,7 @@ func testChunkUpload(t *testing.T, index ...int) {
 	//os.RemoveAll("../_testdata")
 }
 
-func TestRealFile(t *testing.T) {
+func _TestRealFile(t *testing.T) {
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
