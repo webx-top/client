@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -19,14 +20,13 @@ import (
 	"github.com/webx-top/echo/testing/test"
 )
 
-var limiter *ratelimit.Limiter
+var speedBytes int64 = 3 * 1024 * 1024 // 3Mb/s
 
 func init() {
-	log.SetLevel(`Debug`)
+	log.SetLevel(`Warn`)
 	log.Sync()
 	path := "../_testdata/"
 	os.RemoveAll(path)
-	limiter = ratelimit.New(3 * 1024 * 1024) // 3Mb/s
 }
 
 func testChunkUpload(t *testing.T, index ...int) {
@@ -56,7 +56,7 @@ func testChunkUpload(t *testing.T, index ...int) {
 		}
 	}
 	chunks := 15
-	limitReader := limiter.NewReadSeeker(file)
+	limitReader := ratelimit.New(speedBytes).NewReadSeeker(file)
 	fi, err := file.Stat()
 	assert.NoError(t, err)
 	uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), chunks, 0)
@@ -90,7 +90,7 @@ func _TestRealFile(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			limitReader := limiter.NewReadSeeker(file)
+			limitReader := ratelimit.New(speedBytes).NewReadSeeker(file)
 			fi, err := file.Stat()
 			assert.NoError(t, err)
 			uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), 0, chunkSize)
@@ -101,19 +101,20 @@ func _TestRealFile(t *testing.T) {
 }
 
 func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
-	readSeeker.Seek(0, 0)
-	cu := &ChunkUpload{
-		TempDir: `../_testdata` + subdir + `/chunk_temp`,
-		SaveDir: `../_testdata` + subdir + `/chunk_merged`,
-	}
 	if chunks > 0 {
 		chunkSize = int(totalSize) / chunks
 	} else {
 		chunks = int(TotalChunks(uint64(totalSize), uint64(chunkSize)))
 	}
+	tempDir := `../_testdata` + subdir + `/chunk_temp`
+	saveDir := `../_testdata` + subdir + `/chunk_merged`
 	wg := &sync.WaitGroup{}
 	wg.Add(chunks)
 	upload := func(r io.Reader, chunkIndex int, chunkSize int) {
+		cu := &ChunkUpload{
+			TempDir: tempDir,
+			SaveDir: saveDir,
+		}
 		chunkStartTime := time.Now()
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -158,7 +159,9 @@ func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, total
 	}
 	wg.Wait()
 	log.Warn(fileName + ` elapsed: ` + time.Since(startTime).String())
-	fi, err := os.Stat(cu.GetSavePath())
+	savePath, err := genSavePath(saveDir, filepath.Base(fileName), DefaultNameGenerator)
+	assert.NoError(t, err)
+	fi, err := os.Stat(savePath)
 	test.Eq(t, nil, err)
 	test.Eq(t, totalSize, fi.Size())
 }
