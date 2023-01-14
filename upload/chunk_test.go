@@ -13,15 +13,20 @@ import (
 	"time"
 
 	"github.com/admpub/log"
+	"github.com/stretchr/testify/assert"
 	"github.com/webx-top/com"
+	"github.com/webx-top/com/ratelimit"
 	"github.com/webx-top/echo/testing/test"
 )
+
+var limiter *ratelimit.Limiter
 
 func init() {
 	log.SetLevel(`Debug`)
 	log.Sync()
 	path := "../_testdata/"
 	os.RemoveAll(path)
+	limiter = ratelimit.New(3 * 1024 * 1024) // 3Mb/s
 }
 
 func testChunkUpload(t *testing.T, index ...int) {
@@ -51,7 +56,10 @@ func testChunkUpload(t *testing.T, index ...int) {
 		}
 	}
 	chunks := 15
-	uploadTestFile(t, subdir, file, chunks, 0)
+	limitReader := limiter.NewReadSeeker(file)
+	fi, err := file.Stat()
+	assert.NoError(t, err)
+	uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), chunks, 0)
 	file.Close()
 	//os.RemoveAll("../_testdata")
 }
@@ -60,35 +68,56 @@ func _TestRealFile(t *testing.T) {
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
-	file, err := os.Open(`/Users/hank/go/src/github.com/admpub/nging/dist/nging_windows_amd64.tar.gz`)
-	if err != nil {
-		t.Error(err)
-	}
 	chunkSize := 1048576 * 2 // 2M
-	uploadTestFile(t, subdir, file, 0, chunkSize)
-	file.Close()
+	fileList := []string{
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_windows_386.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_windows_amd64.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_386.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_amd64.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_arm64.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_arm-5.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_arm-6.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_linux_arm-7.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_darwin_amd64.tar.gz`,
+		`/Users/hank/go/src/github.com/admpub/nging/dist/nging_darwin_arm64.tar.gz`,
+	}
+	wg := sync.WaitGroup{}
+	wg.Add(len(fileList))
+	for _, filePath := range fileList {
+		go func(filePath string) {
+			defer wg.Done()
+			file, err := os.Open(filePath)
+			if err != nil {
+				t.Error(err)
+			}
+			limitReader := limiter.NewReadSeeker(file)
+			fi, err := file.Stat()
+			assert.NoError(t, err)
+			uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), 0, chunkSize)
+			file.Close()
+		}(filePath)
+	}
+	wg.Wait()
 }
 
-func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chunkSize int) {
-	file.Seek(0, 0)
-	b, err := io.ReadAll(file)
-	test.Eq(t, nil, err)
+func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
+	readSeeker.Seek(0, 0)
 	cu := &ChunkUpload{
 		TempDir: `../_testdata` + subdir + `/chunk_temp`,
 		SaveDir: `../_testdata` + subdir + `/chunk_merged`,
 	}
 	if chunks > 0 {
-		chunkSize = len(b) / chunks
+		chunkSize = int(totalSize) / chunks
 	} else {
-		chunks = int(TotalChunks(uint64(len(b)), uint64(chunkSize)))
+		chunks = int(TotalChunks(uint64(totalSize), uint64(chunkSize)))
 	}
 	wg := &sync.WaitGroup{}
 	wg.Add(chunks)
 	upload := func(r io.Reader, chunkIndex int, chunkSize int) {
-		//chunkStartTime := time.Now()
+		chunkStartTime := time.Now()
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
-		filename := file.Name()
+		filename := fileName
 		part, err := writer.CreateFormFile("file", filename)
 		if err != nil {
 			writer.Close()
@@ -103,23 +132,23 @@ func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chun
 		req.Form.Add(`chunkIndex`, fmt.Sprintf(`%d`, chunkIndex))
 		req.Form.Add(`fileTotalChunks`, fmt.Sprintf(`%d`, chunks))
 		req.Form.Add(`fileChunkBytes`, fmt.Sprintf(`%d`, chunkSize))
-		req.Form.Add(`fileTotalBytes`, fmt.Sprintf(`%d`, len(b)))
+		req.Form.Add(`fileTotalBytes`, fmt.Sprintf(`%d`, totalSize))
 		n, err := cu.Upload(req)
 		test.Eq(t, nil, err)
 		test.NotEq(t, 0, n)
 		wg.Done()
-		//log.Warn(subdir + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
+		log.Warn(`Post: ` + fileName + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
 	}
 	startTime := time.Now()
-	file.Seek(0, 0)
+	readSeeker.Seek(0, 0)
 	for i := 0; i < chunks; i++ {
 		offset := i * chunkSize
 		if i == chunks-1 {
-			chunkSize = len(b) - chunkSize*(chunks-1)
+			chunkSize = int(totalSize) - chunkSize*(chunks-1)
 		}
 		data := make([]byte, chunkSize)
-		fmt.Printf("chunkIndex: %d offset: %d (%d) chunkSize: %d\n", i, offset, offset+chunkSize, chunkSize)
-		n, err := file.Read(data)
+		fmt.Printf("%v => chunkIndex: %d offset: %d (%d) chunkSize: %d\n", fileName, i, offset, offset+chunkSize, chunkSize)
+		n, err := readSeeker.Read(data)
 		if err == io.EOF {
 			wg.Done()
 			continue
@@ -128,10 +157,10 @@ func uploadTestFile(t *testing.T, subdir string, file *os.File, chunks int, chun
 		go upload(buf, i, chunkSize)
 	}
 	wg.Wait()
-	log.Warn(subdir + ` elapsed: ` + time.Since(startTime).String())
-	uploaded, err := os.ReadFile(cu.GetSavePath())
+	log.Warn(fileName + ` elapsed: ` + time.Since(startTime).String())
+	fi, err := os.Stat(cu.GetSavePath())
 	test.Eq(t, nil, err)
-	test.Eq(t, len(b), len(uploaded))
+	test.Eq(t, totalSize, fi.Size())
 }
 
 func TestChunkUploadMergeAll(t *testing.T) {

@@ -91,7 +91,7 @@ func (c *ChunkUpload) calcFinisedSize(info ChunkInfor, fileName string) (uint64,
 		}
 	}
 	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(echo.Dump(echo.H{`finishedSize`: finishedSize, `fileSize`: fileSize, `finishedCount`: finishedCount}, false))
+		log.Debug(fileName+`: `, echo.Dump(echo.H{`finishedSize`: finishedSize, `fileSize`: fileSize, `finishedCount`: finishedCount}, false))
 	}
 	if finishedCount == chunkTotal {
 		if finishedSize != fileSize {
