@@ -11,6 +11,7 @@ import (
 	"github.com/admpub/checksum"
 	"github.com/admpub/log"
 	"github.com/webx-top/com"
+	"github.com/webx-top/com/ratelimit"
 	"github.com/webx-top/echo"
 )
 
@@ -34,6 +35,9 @@ func (c *ChunkUpload) Upload(r *http.Request, opts ...ChunkInfoOpter) (int64, er
 	info.FileName = fileHeader.Filename
 	info.CurrentSize = uint64(fileHeader.Size)
 	defer upFile.Close()
+	if info.SpeedBps > 0 {
+		return c.ChunkUpload(info, ratelimit.New(info.SpeedBps).NewReadSeeker(upFile))
+	}
 	return c.ChunkUpload(info, upFile)
 }
 
