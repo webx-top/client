@@ -19,10 +19,13 @@ import (
 var speedBytes int64 = 3 * 1024 * 1024 // 3Mb/s
 
 func init() {
-	log.SetLevel(`Warn`)
-	log.Sync()
 	path := "../_testdata/"
 	os.RemoveAll(path)
+	log.SetLevel(`Debug`)
+	fileTarget := log.NewFileTarget()
+	fileTarget.FileName = path + `/test.log`
+	log.SetTarget(log.NewConsoleTarget(), fileTarget)
+	log.Sync()
 }
 
 func testChunkUpload(t *testing.T, index ...int) {
