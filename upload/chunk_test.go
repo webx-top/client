@@ -1,20 +1,16 @@
-package upload
+package upload_test
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
-	"net/http/httptest"
-	"net/url"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/admpub/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/webx-top/client/upload"
+	"github.com/webx-top/client/upload/utesting"
 	"github.com/webx-top/com"
 	"github.com/webx-top/com/ratelimit"
 	"github.com/webx-top/echo/testing/test"
@@ -104,69 +100,14 @@ func TestRealFile(t *testing.T) {
 }
 
 func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
-	if chunks > 0 {
-		chunkSize = int(totalSize) / chunks
-	} else {
-		chunks = int(TotalChunks(uint64(totalSize), uint64(chunkSize)))
-	}
 	tempDir := `../_testdata` + subdir + `/chunk_temp`
 	saveDir := `../_testdata` + subdir + `/chunk_merged`
-	wg := &sync.WaitGroup{}
-	wg.Add(chunks)
-	upload := func(r io.Reader, chunkIndex int, chunkSize int) {
-		cu := &ChunkUpload{
-			TempDir: tempDir,
-			SaveDir: saveDir,
-		}
-		chunkStartTime := time.Now()
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
-		filename := fileName
-		part, err := writer.CreateFormFile("file", filename)
-		if err != nil {
-			writer.Close()
-			t.Error(err)
-		}
-		io.Copy(part, r)
-		writer.Close()
-
-		req := httptest.NewRequest("POST", "/upload", body)
-		req.Header.Set("Content-Type", writer.FormDataContentType())
-		req.Form = make(url.Values)
-		req.Form.Add(`chunkIndex`, fmt.Sprintf(`%d`, chunkIndex))
-		req.Form.Add(`fileTotalChunks`, fmt.Sprintf(`%d`, chunks))
-		req.Form.Add(`fileChunkBytes`, fmt.Sprintf(`%d`, chunkSize))
-		req.Form.Add(`fileTotalBytes`, fmt.Sprintf(`%d`, totalSize))
-		n, err := cu.Upload(req)
-		test.Eq(t, nil, err)
-		test.NotEq(t, 0, n)
-		wg.Done()
-		log.Warn(`Post: ` + fileName + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
+	cu := &upload.ChunkUpload{
+		TempDir: tempDir,
+		SaveDir: saveDir,
 	}
-	startTime := time.Now()
-	readSeeker.Seek(0, 0)
-	for i := 0; i < chunks; i++ {
-		offset := i * chunkSize
-		if i == chunks-1 {
-			chunkSize = int(totalSize) - chunkSize*(chunks-1)
-		}
-		data := make([]byte, chunkSize)
-		fmt.Printf("%v => chunkIndex: %d offset: %d (%d) chunkSize: %d\n", fileName, i, offset, offset+chunkSize, chunkSize)
-		n, err := readSeeker.Read(data)
-		if err == io.EOF {
-			wg.Done()
-			continue
-		}
-		buf := bytes.NewBuffer(data[:n])
-		go upload(buf, i, chunkSize)
-	}
-	wg.Wait()
-	log.Warn(fileName + ` elapsed: ` + time.Since(startTime).String())
-	savePath, err := genSavePath(saveDir, filepath.Base(fileName), DefaultNameGenerator)
-	assert.NoError(t, err)
-	fi, err := os.Stat(savePath)
-	test.Eq(t, nil, err)
-	test.Eq(t, totalSize, fi.Size())
+	utesting.UploadTestFile(t, cu, readSeeker, totalSize, fileName, chunks, chunkSize)
+	utesting.VerifyUploadedTestFile(t, cu, fileName, totalSize)
 }
 
 func TestChunkUploadMergeAll(t *testing.T) {
@@ -186,8 +127,8 @@ func TestChunkUploadSyncMergeAllBatch(t *testing.T) {
 }
 
 func TestChunkUploadParseHeader(t *testing.T) {
-	ci := &ChunkInfo{}
-	found := ci.parseHeader(`bytes 500-999/67589`)
+	ci := &upload.ChunkInfo{}
+	found := ci.ParseHeaderValue(`bytes 500-999/67589`)
 	com.Dump(ci)
 	test.True(t, found)
 	test.Eq(t, uint64(500), ci.ChunkOffsetBytes)
@@ -198,7 +139,7 @@ func TestChunkUploadParseHeader(t *testing.T) {
 	test.Eq(t, uint64(500), ci.CurrentSize)
 	test.Eq(t, uint64(500), ci.FileChunkBytes)
 
-	found = ci.parseHeader(`bytes 1000-1499/67589`)
+	found = ci.ParseHeaderValue(`bytes 1000-1499/67589`)
 	com.Dump(ci)
 	test.True(t, found)
 	test.Eq(t, uint64(1000), ci.ChunkOffsetBytes)
