@@ -208,8 +208,7 @@ func (c *ChunkUpload) mergeAll(totalChunks uint64, fileChunkBytes uint64, fileTo
 		cfile, cerr := os.Open(chunkFilePath)
 		if cerr != nil {
 			err = fmt.Errorf("%w: %s: %v", ErrChunkFileOpenFailed, chunkFilePath, cerr)
-			log.Errorf(err.Error())
-			return nil
+			return
 		}
 		var n int64
 		n, err = WriteTo(cfile, file)
