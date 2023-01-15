@@ -1,6 +1,7 @@
 package upload_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +18,8 @@ import (
 )
 
 var speedBytes int64 = 3 * 1024 * 1024 // 3Mb/s
+var counters = upload.NewCounters()
+var delayMerge bool
 
 func init() {
 	path := "../_testdata/"
@@ -100,21 +103,34 @@ func TestRealFile(t *testing.T) {
 		}(filePath)
 	}
 	wg.Wait()
+	cc := counters.Map()
+	com.Dump(cc)
+	for _, v := range cc {
+		assert.Equal(t, 1, v)
+	}
 }
 
 func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
 	tempDir := `../_testdata` + subdir + `/chunk_temp`
 	saveDir := `../_testdata` + subdir + `/chunk_merged`
 	cu := &upload.ChunkUpload{
-		TempDir: tempDir,
-		SaveDir: saveDir,
+		TempDir:    tempDir,
+		SaveDir:    saveDir,
+		DelayMerge: delayMerge,
 	}
+	cu.OnBeforeMerge(func(ctx context.Context, info upload.ChunkInfor, filename string) error {
+		counters.Add(filename, 1)
+		return nil
+	})
 	utesting.UploadTestFile(t, cu, readSeeker, totalSize, fileName, chunks, chunkSize)
 	utesting.VerifyUploadedTestFile(t, cu, fileName, totalSize)
 }
 
 func TestChunkUploadMergeAll(t *testing.T) {
 	testChunkUpload(t)
+	delayMerge = true
+	testChunkUpload(t)
+	delayMerge = false
 }
 
 func TestChunkUploadSyncMergeAllBatch(t *testing.T) {
