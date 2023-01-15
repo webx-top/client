@@ -152,4 +152,17 @@ func TestChunkUploadParseHeader(t *testing.T) {
 	test.Eq(t, uint64(136), ci.FileTotalChunks)
 	test.Eq(t, uint64(500), ci.CurrentSize)
 	test.Eq(t, uint64(500), ci.FileChunkBytes)
+
+	fileUUID := `abc123-32321s-122222`
+	ci.FileUUID = fileUUID
+	ci.FixedUUID()
+	test.Eq(t, fileUUID, ci.FileUUID)
+	ci.FileUUID = `..abc123-32321s-122222`
+	ci.FixedUUID()
+	test.Empty(t, ci.FileUUID)
+
+	fileUUID = `abc123_32321s_122222`
+	ci.FileUUID = fileUUID
+	ci.FixedUUID()
+	test.Eq(t, fileUUID, ci.FileUUID)
 }

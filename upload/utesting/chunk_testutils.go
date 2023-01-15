@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/admpub/log"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/webx-top/client/upload"
 	"github.com/webx-top/echo/testing/test"
@@ -25,9 +26,10 @@ func UploadTestFile(t *testing.T, parentCU *upload.ChunkUpload, readSeeker io.Re
 	} else {
 		chunks = int(upload.TotalChunks(uint64(totalSize), uint64(chunkSize)))
 	}
+	fileUUID := uuid.New().String()
 	wg := &sync.WaitGroup{}
 	wg.Add(chunks)
-	upload := func(r io.Reader, chunkIndex int, chunkSize int) {
+	uploadChunk := func(r io.Reader, chunkIndex int, chunkSize int) error {
 		cu := parentCU.Clone()
 		chunkStartTime := time.Now()
 		body := &bytes.Buffer{}
@@ -44,19 +46,18 @@ func UploadTestFile(t *testing.T, parentCU *upload.ChunkUpload, readSeeker io.Re
 		req := httptest.NewRequest("POST", "/upload", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		req.Form = make(url.Values)
+		req.Form.Add(`fileUUID`, fileUUID)
 		req.Form.Add(`chunkIndex`, fmt.Sprintf(`%d`, chunkIndex))
 		req.Form.Add(`fileTotalChunks`, fmt.Sprintf(`%d`, chunks))
 		req.Form.Add(`fileChunkBytes`, fmt.Sprintf(`%d`, chunkSize))
 		req.Form.Add(`fileTotalBytes`, fmt.Sprintf(`%d`, totalSize))
-		n, err := cu.Upload(req)
-		test.Eq(t, nil, err)
-		test.NotEq(t, 0, n)
-		wg.Done()
+		_, err = cu.Upload(req)
 		log.Warn(`Post: ` + fileName + ` chunk(` + fmt.Sprintf(`%d`, chunkIndex) + `) elapsed: ` + time.Since(chunkStartTime).String())
+		return err
 	}
 	startTime := time.Now()
 	readSeeker.Seek(0, 0)
-	for i := 0; i < chunks; i++ {
+	doChunk := func(i int, wg *sync.WaitGroup) {
 		offset := i * chunkSize
 		if i == chunks-1 {
 			chunkSize = int(totalSize) - chunkSize*(chunks-1)
@@ -66,10 +67,30 @@ func UploadTestFile(t *testing.T, parentCU *upload.ChunkUpload, readSeeker io.Re
 		n, err := readSeeker.Read(data)
 		if err == io.EOF {
 			wg.Done()
-			continue
+			return
 		}
-		buf := bytes.NewBuffer(data[:n])
-		go upload(buf, i, chunkSize)
+		up := func(n int, chunkIndex int, chunkSize int) {
+			buf := bytes.NewBuffer(data[:n])
+			err := uploadChunk(buf, chunkIndex, chunkSize)
+			test.Eq(t, nil, err)
+			if chunkIndex == 0 {
+				buf = bytes.NewBuffer(data[:n])
+				err = uploadChunk(buf, chunkIndex, chunkSize)
+				assert.ErrorIs(t, err, upload.ErrChunkUploadCompleted)
+			}
+			wg.Done()
+		}
+		go up(n, i, chunkSize)
+	}
+	if chunks > 0 {
+		firstWg := &sync.WaitGroup{}
+		firstWg.Add(1)
+		doChunk(0, firstWg)
+		firstWg.Wait()
+		wg.Done()
+	}
+	for i := 1; i < chunks; i++ {
+		doChunk(i, wg)
 	}
 	wg.Wait()
 	log.Warn(fileName + ` elapsed: ` + time.Since(startTime).String())
