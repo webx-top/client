@@ -80,7 +80,7 @@ func (c *ChunkUpload) calcFinisedSize(info ChunkInfor, fileName string) (uint64,
 		fi, err := os.Stat(chunkFile)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				err = fmt.Errorf(`统计分片文件尺寸错误: %s: %v`, chunkFile, err)
+				err = fmt.Errorf(`统计分片文件尺寸错误: %s: %w`, chunkFile, err)
 				return finishedSize, err
 			}
 		} else {
