@@ -64,7 +64,7 @@ func testChunkUpload(t *testing.T, index ...int) {
 	//os.RemoveAll("../_testdata")
 }
 
-func _TestRealFile(t *testing.T) {
+func TestRealFile(t *testing.T) {
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
@@ -88,6 +88,9 @@ func _TestRealFile(t *testing.T) {
 			defer wg.Done()
 			file, err := os.Open(filePath)
 			if err != nil {
+				if os.IsNotExist(err) {
+					return
+				}
 				t.Error(err)
 			}
 			limitReader := ratelimit.New(speedBytes).NewReadSeeker(file)
