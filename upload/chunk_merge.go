@@ -221,6 +221,10 @@ func (c *ChunkUpload) mergeAll(totalChunks uint64, fileChunkBytes uint64, fileTo
 		}
 		c.addSaveSize(n)
 	}
+	err = file.Sync()
+	if err != nil {
+		return
+	}
 
 	err = c.clearChunk(totalChunks, saveFileName)
 	c.merged = true
