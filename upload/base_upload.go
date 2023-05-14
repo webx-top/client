@@ -62,6 +62,7 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 			FileName:    options.Result.FileName,
 			CurrentSize: uint64(options.Result.FileSize),
 		}
+		a.Context.Request().MultipartForm()
 		info.Init(func(name string) string {
 			return a.Form(name)
 		}, a.Header)
