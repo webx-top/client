@@ -101,5 +101,7 @@ func VerifyUploadedTestFile(t *testing.T, parentCU *upload.ChunkUpload, fileName
 	assert.NoError(t, err)
 	fi, err := os.Stat(savePath)
 	test.Eq(t, nil, err)
-	test.Eq(t, totalSize, fi.Size())
+	if err == nil {
+		test.Eq(t, totalSize, fi.Size())
+	}
 }

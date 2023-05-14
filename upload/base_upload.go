@@ -36,7 +36,10 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 		uploadMaxSize = a.UploadMaxSize()
 	}
 	if uploadMaxSize > 0 && body.Size() > uploadMaxSize {
-		a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(uploadMaxSize))
+		a.err = fmt.Errorf(`%w: %v>%v`, ErrFileTooLarge,
+			com.FormatBytes(body.Size(), 2, true),
+			com.FormatBytes(uploadMaxSize, 2, true),
+		)
 		return a
 	}
 
@@ -118,6 +121,10 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 		a.err = ErrInvalidContent
 		return a
 	}
+	if err := a.checkRequestBodySize(); err != nil {
+		a.err = err
+		return a
+	}
 	m := req.MultipartForm()
 	if m == nil || m.File == nil {
 		a.err = ErrInvalidContent
@@ -139,7 +146,11 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 	for _, fileHdr := range files {
 		//for each fileheader, get a handle to the actual file
 		if uploadMaxSize > 0 && fileHdr.Size > uploadMaxSize {
-			a.err = fmt.Errorf(`%w: %v`, ErrFileTooLarge, com.FormatBytes(uploadMaxSize))
+			a.err = fmt.Errorf(
+				`%w: %v>%v`, ErrFileTooLarge,
+				com.FormatBytes(fileHdr.Size, 2, true),
+				com.FormatBytes(uploadMaxSize, 2, true),
+			)
 			return a
 		}
 

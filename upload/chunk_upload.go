@@ -28,6 +28,17 @@ func (c *ChunkUpload) Upload(r *http.Request, opts ...ChunkInfoOpter) (int64, er
 	if !c.IsSupported(info) {
 		return 0, ErrChunkUnsupported
 	}
+	if c.FileMaxBytes > 0 {
+		if r.ContentLength > int64(c.FileMaxBytes) {
+			return 0, fmt.Errorf(`%w: %d>%d `, ErrRequestBodyExceedsLimit, r.ContentLength, c.FileMaxBytes)
+		}
+		if r.MultipartForm == nil {
+			err := r.ParseMultipartForm(int64(c.FileMaxBytes))
+			if err != nil {
+				return 0, fmt.Errorf("上传文件错误: %w", err)
+			}
+		}
+	}
 	// 获取上传文件
 	upFile, fileHeader, err := r.FormFile(info.FormField)
 	if err != nil {

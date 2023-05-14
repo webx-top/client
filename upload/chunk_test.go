@@ -117,6 +117,7 @@ func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, total
 		TempDir:    tempDir,
 		SaveDir:    saveDir,
 		DelayMerge: delayMerge,
+		//FileMaxBytes: 1048576 * 1, // 1M,
 	}
 	cu.OnBeforeMerge(func(ctx context.Context, info upload.ChunkInfor, filename string) error {
 		counters.Add(filename, 1)
