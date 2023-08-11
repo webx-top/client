@@ -19,7 +19,6 @@ import (
 
 var speedBytes int64 = 3 * 1024 * 1024 // 3Mb/s
 var counters = upload.NewCounters()
-var delayMerge bool
 
 func init() {
 	path := "../_testdata/"
@@ -31,7 +30,7 @@ func init() {
 	log.Sync()
 }
 
-func testChunkUpload(t *testing.T, index ...int) {
+func testChunkUpload(t *testing.T, delayMerge bool, index ...int) {
 	subdir := `/mergeAll`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
@@ -61,12 +60,13 @@ func testChunkUpload(t *testing.T, index ...int) {
 	limitReader := ratelimit.New(speedBytes).NewReadSeeker(file)
 	fi, err := file.Stat()
 	assert.NoError(t, err)
-	uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), chunks, 0)
+	uploadTestFile(t, delayMerge, subdir, limitReader, fi.Size(), file.Name(), chunks, 0)
 	file.Close()
 	//os.RemoveAll("../_testdata")
 }
 
 func TestRealFile(t *testing.T) {
+	var delayMerge bool
 	subdir := `/realfile`
 	path := "../_testdata" + subdir + "/" //要上传文件所在路径
 	os.MkdirAll(path, os.ModePerm)
@@ -98,7 +98,7 @@ func TestRealFile(t *testing.T) {
 			limitReader := ratelimit.New(speedBytes).NewReadSeeker(file)
 			fi, err := file.Stat()
 			assert.NoError(t, err)
-			uploadTestFile(t, subdir, limitReader, fi.Size(), file.Name(), 0, chunkSize)
+			uploadTestFile(t, delayMerge, subdir, limitReader, fi.Size(), file.Name(), 0, chunkSize)
 			file.Close()
 		}(filePath)
 	}
@@ -110,7 +110,7 @@ func TestRealFile(t *testing.T) {
 	}
 }
 
-func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
+func uploadTestFile(t *testing.T, delayMerge bool, subdir string, readSeeker io.ReadSeeker, totalSize int64, fileName string, chunks int, chunkSize int) {
 	tempDir := `../_testdata` + subdir + `/chunk_temp`
 	saveDir := `../_testdata` + subdir + `/chunk_merged`
 	cu := &upload.ChunkUpload{
@@ -128,18 +128,19 @@ func uploadTestFile(t *testing.T, subdir string, readSeeker io.ReadSeeker, total
 }
 
 func TestChunkUploadMergeAll(t *testing.T) {
-	testChunkUpload(t)
-	delayMerge = true
-	testChunkUpload(t)
+	delayMerge := true
+	testChunkUpload(t, delayMerge)
 	delayMerge = false
+	testChunkUpload(t, delayMerge)
 }
 
 func TestChunkUploadSyncMergeAllBatch(t *testing.T) {
+	var delayMerge bool
 	wg := sync.WaitGroup{}
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func(i int) {
-			testChunkUpload(t, i)
+			testChunkUpload(t, delayMerge, i)
 			wg.Done()
 		}(i)
 	}
