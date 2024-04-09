@@ -191,14 +191,15 @@ func (a *BaseClient) SetFieldMapping(fm map[string]string) Client {
 }
 
 func (a *BaseClient) Response() error {
-	if a.Code > 0 {
-		return a.responseContentType(a.Code)
-	}
-	return a.responseContentType(http.StatusOK)
+	return a.responseContentType()
 }
 
-func (a *BaseClient) responseContentType(code int) error {
+func (a *BaseClient) responseContentType() error {
 	data := a.GetRespData()
+	code := a.Code
+	if code <= 0 {
+		code = http.StatusOK
+	}
 	switch a.ContentType {
 	case `string`:
 		return a.String(fmt.Sprint(data), code)
