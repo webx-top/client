@@ -198,18 +198,19 @@ func (a *BaseClient) Response() error {
 }
 
 func (a *BaseClient) responseContentType(code int) error {
+	data := a.GetRespData()
 	switch a.ContentType {
 	case `string`:
-		return a.String(fmt.Sprint(a.GetRespData()), code)
+		return a.String(fmt.Sprint(data), code)
 	case `xml`:
-		return a.XML(a.GetRespData(), code)
+		return a.XML(data, code)
 	case `redirect`:
-		a.Context.Response().Redirect(fmt.Sprint(a.GetRespData()), code)
+		a.Context.Response().Redirect(fmt.Sprint(data), code)
 		return nil
 	default:
 		if len(a.JSONPVarName) > 0 {
-			return a.JSONP(a.JSONPVarName, a.GetRespData(), code)
+			return a.JSONP(a.JSONPVarName, data, code)
 		}
-		return a.JSON(a.GetRespData(), code)
+		return a.JSON(data, code)
 	}
 }
