@@ -141,7 +141,7 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 	}
 	files, ok := m.File[a.Name()]
 	if !ok {
-		a.err = echo.ErrNotFoundFileInput
+		a.err = fmt.Errorf(`%w: %s`, echo.ErrNotFoundFileInput, a.Name())
 		return a
 	}
 	uploadMaxSize := options.MaxSize
