@@ -6,18 +6,29 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/admpub/safesvg"
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
 	"github.com/h2non/filetype/types"
 	svg "github.com/h2non/go-is-svg"
-	"github.com/hamochi/safesvg"
 )
 
-var ReadHeadSizeBytes = 261
-var SVGMaxSizeBytes int64 = 5 * 1024 * 1024
-var ErrIncorrectFileFormat = errors.New(`file format is incorrect`)
-var defaultSafeSVGValidator = safesvg.NewValidator()
-var svgHeadRegex = regexp.MustCompile(`(?i)^\s*(?:<\?xml[^>]*>\s*)?(?:<!doctype svg[^>]*>\s*)?<svg[^>]*>`)
+var (
+	ReadHeadSizeBytes             = 261
+	SVGMaxSizeBytes         int64 = 5 * 1024 * 1024
+	ErrIncorrectFileFormat        = errors.New(`file format is incorrect`)
+	defaultSafeSVGValidator       = safesvg.NewValidator()
+	svgHeadRegex                  = regexp.MustCompile(`(?i)^\s*(?:<\?xml[^>]*>\s*)?(?:<!doctype svg[^>]*>\s*)?<svg[^>]*>`)
+)
+
+func init() {
+	defaultSafeSVGValidator.WhitelistElements(`style`)
+	defaultSafeSVGValidator.WhitelistAttributes(`http://www.w3.org/1999/xlink:href`, `data-name`)
+}
+
+func SafeSVGValidator() safesvg.Validator {
+	return defaultSafeSVGValidator
+}
 
 func ReadHeadBytes(r io.Reader, readSizes ...int) ([]byte, error) {
 	readSize := ReadHeadSizeBytes
