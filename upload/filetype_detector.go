@@ -69,7 +69,7 @@ func IsType(b []byte, expected types.Type) bool {
 func IsTypeString(b []byte, expected string) bool {
 	switch expected {
 	case `image`:
-		return IsImage(b) || IsSVGImage(b)
+		return IsImage(b)
 	case `video`:
 		return IsVideo(b)
 	case `audio`:
