@@ -13,6 +13,7 @@ import (
 )
 
 var ReadHeadSizeBytes = 261
+var SVGMaxSizeBytes int64 = 5 * 1024 * 1024
 var ErrIncorrectFileFormat = errors.New(`file format is incorrect`)
 var defaultSafeSVGValidator = safesvg.NewValidator()
 
@@ -85,7 +86,8 @@ func IsTypeStringByReader(rd io.Reader, expected string) error {
 	if !IsSVGImage(head) {
 		return ErrIncorrectFileFormat
 	}
-	buf, err := io.ReadAll(rd)
+	// SVG
+	buf, err := io.ReadAll(io.LimitReader(rd, SVGMaxSizeBytes))
 	if err != nil {
 		return err
 	}
