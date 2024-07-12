@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,5 +37,11 @@ func TestIsSVG(t *testing.T) {
 
 func TestValidateSVGImage(t *testing.T) {
 	r := ValidateSVGImage(svgBytes)
+	assert.NoError(t, r)
+}
+
+func TestIsTypeStringByReader(t *testing.T) {
+	buf := bytes.NewReader(svgBytes)
+	r := IsTypeStringByReader(buf, `image`)
 	assert.NoError(t, r)
 }

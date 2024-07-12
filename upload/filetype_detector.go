@@ -3,6 +3,7 @@ package upload
 import (
 	"errors"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/h2non/filetype"
@@ -16,6 +17,7 @@ var ReadHeadSizeBytes = 261
 var SVGMaxSizeBytes int64 = 5 * 1024 * 1024
 var ErrIncorrectFileFormat = errors.New(`file format is incorrect`)
 var defaultSafeSVGValidator = safesvg.NewValidator()
+var svgHeadRegex = regexp.MustCompile(`(?i)^\s*(?:<\?xml[^>]*>\s*)?(?:<!doctype svg[^>]*>\s*)?<svg[^>]*>`)
 
 func ReadHeadBytes(r io.Reader, readSizes ...int) ([]byte, error) {
 	readSize := ReadHeadSizeBytes
@@ -83,13 +85,16 @@ func IsTypeStringByReader(rd io.Reader, expected string) error {
 	if expected != `image` {
 		return ErrIncorrectFileFormat
 	}
-	if !IsSVGImage(head) {
+	if !svgHeadRegex.Match(head) {
 		return ErrIncorrectFileFormat
 	}
 	// SVG
 	buf, err := io.ReadAll(io.LimitReader(rd, SVGMaxSizeBytes))
 	if err != nil {
 		return err
+	}
+	if !IsSVGImage(buf) {
+		return ErrIncorrectFileFormat
 	}
 	err = ValidateSVGImage(buf)
 	if err != nil {
@@ -98,7 +103,7 @@ func IsTypeStringByReader(rd io.Reader, expected string) error {
 	if sk, ok := rd.(io.ReadSeeker); ok {
 		sk.Seek(0, 0)
 	}
-	return ErrIncorrectFileFormat
+	return nil
 }
 
 func IsTypeString(b []byte, expected string) bool {
