@@ -4,6 +4,7 @@ import (
 	"io"
 	"mime/multipart"
 	"path"
+	"strings"
 
 	"github.com/webx-top/client/upload/watermark"
 	"github.com/webx-top/image"
@@ -102,11 +103,15 @@ func ImageAddWatermark(watermarkOptions *image.WatermarkOptions) SaveBeforeHook 
 		if result.FileType.String() != `image` || watermarkOptions == nil || !watermarkOptions.IsEnabled() {
 			return file, -1, nil
 		}
+		extension := path.Ext(result.FileName)
+		if strings.EqualFold(extension, `.svg`) {
+			return file, -1, nil
+		}
 		b, err := io.ReadAll(file)
 		if err != nil {
 			return file, -1, err
 		}
-		b, err = watermark.Bytes(b, path.Ext(result.FileName), watermarkOptions)
+		b, err = watermark.Bytes(b, extension, watermarkOptions)
 		if err != nil {
 			return file, -1, err
 		}
