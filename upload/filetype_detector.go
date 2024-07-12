@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"errors"
 	"io"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 )
 
 var ReadHeadSizeBytes = 261
+var ErrIncorrectFileFormat = errors.New(`file format is incorrect`)
 var defaultSafeSVGValidator = safesvg.NewValidator()
 
 func ReadHeadBytes(r io.Reader, readSizes ...int) ([]byte, error) {
@@ -30,7 +32,7 @@ func IsImage(b []byte) bool {
 }
 
 func IsSVGImage(b []byte) bool {
-	return svg.Is(b) && ValidateSVGImage(b) == nil
+	return svg.Is(b)
 }
 
 func ValidateSVGImage(b []byte) error {
@@ -64,6 +66,37 @@ func IsApplication(b []byte) bool {
 func IsType(b []byte, expected types.Type) bool {
 	kind, _ := filetype.Match(b)
 	return kind == expected
+}
+
+func IsTypeStringByReader(rd io.Reader, expected string) error {
+	head, err := ReadHeadBytes(rd)
+	if err != nil {
+		return err
+	}
+	if sk, ok := rd.(io.ReadSeeker); ok {
+		sk.Seek(0, 0)
+	}
+	if IsTypeString(head, expected) {
+		return nil
+	}
+	if expected != `image` {
+		return ErrIncorrectFileFormat
+	}
+	if !IsSVGImage(head) {
+		return ErrIncorrectFileFormat
+	}
+	buf, err := io.ReadAll(rd)
+	if err != nil {
+		return err
+	}
+	err = ValidateSVGImage(buf)
+	if err != nil {
+		return err
+	}
+	if sk, ok := rd.(io.ReadSeeker); ok {
+		sk.Seek(0, 0)
+	}
+	return ErrIncorrectFileFormat
 }
 
 func IsTypeString(b []byte, expected string) bool {

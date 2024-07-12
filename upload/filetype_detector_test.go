@@ -33,3 +33,8 @@ func TestIsSVG(t *testing.T) {
 	r := IsSVGImage(svgBytes)
 	assert.True(t, r)
 }
+
+func TestValidateSVGImage(t *testing.T) {
+	r := ValidateSVGImage(svgBytes)
+	assert.NoError(t, r)
+}
