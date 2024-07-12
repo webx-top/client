@@ -7,9 +7,12 @@ import (
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
 	"github.com/h2non/filetype/types"
+	svg "github.com/h2non/go-is-svg"
+	"github.com/hamochi/safesvg"
 )
 
 var ReadHeadSizeBytes = 261
+var defaultSafeSVGValidator = safesvg.NewValidator()
 
 func ReadHeadBytes(r io.Reader, readSizes ...int) ([]byte, error) {
 	readSize := ReadHeadSizeBytes
@@ -24,6 +27,14 @@ func ReadHeadBytes(r io.Reader, readSizes ...int) ([]byte, error) {
 
 func IsImage(b []byte) bool {
 	return filetype.IsImage(b)
+}
+
+func IsSVGImage(b []byte) bool {
+	return svg.Is(b) && ValidateSVGImage(b) == nil
+}
+
+func ValidateSVGImage(b []byte) error {
+	return defaultSafeSVGValidator.Validate(b)
 }
 
 func IsVideo(b []byte) bool {
@@ -58,7 +69,7 @@ func IsType(b []byte, expected types.Type) bool {
 func IsTypeString(b []byte, expected string) bool {
 	switch expected {
 	case `image`:
-		return IsImage(b)
+		return IsImage(b) || IsSVGImage(b)
 	case `video`:
 		return IsVideo(b)
 	case `audio`:
