@@ -74,15 +74,38 @@ var (
 	}
 
 	// FileTypeMimeKeywords 文件类型对应mime关键词
+	// https://mime.wcode.net/zh-hans/
 	FileTypeMimeKeywords = map[string][]string{
-		`image`:   {`image`},
-		`video`:   {`video`},
-		`audio`:   {`audio`},
-		`archive`: {`compressed`},
-		`pdf`:     {`pdf`},
-		`xls`:     {`csv`, `excel`},
-		`ppt`:     {`powerpoint`},
-		`doc`:     {`msword`, `text`},
+		`image`: {`image`},
+		`video`: {`video`},
+		`audio`: {`audio`},
+		`archive`: {
+			`zip`, `x-zip`, `x-zip-compressed`,
+			`x-xz`, `x-xz-compressed-tar`, `x-xzpdf`, `x-zip-compressed-fb2`, `x-zstd-compressed-tar`,
+			`vnd.rar`, `x-rar`, `x-rar-compressed`,
+			`x-tar`, `x-tarz`, `gzip`, `x-compressed-tar`, `x-gzip`,
+			`x-7z-compressed`,
+		},
+		`pdf`: {`pdf`, `x-pdf`, `acrobat`, `nappdf`},
+		`xls`: {
+			`kset`,                                    //WPS
+			`csv`, `excel`, `msexcel`, `vnd.ms-excel`, //MicrosoftOffice
+			`vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
+			`zz-winassoc-xls`,
+		},
+		`ppt`: {
+			`ksdps`,                                                             //WPS
+			`powerpoint`, `mspowerpoint`, `vnd.ms-powerpoint`, `x-mspowerpoint`, //MicrosoftOffice
+			`vnd.openxmlformats-officedocument.presentationml.presentation`,
+		},
+		`doc`: {
+			`kswps`,                      //WPS
+			`msword`, `x-msword`, `text`, //MicrosoftOffice
+			`vnd.openxmlformats-officedocument.wordprocessingml.document`,
+			`zz-winassoc-doc`,
+		},
+		`bt`:        {`x-bittorrent`},
+		`photoshop`: {`psd`, `photoshop`, `x-psd`, `x-photoshop`, `vnd.adobe.photoshop`},
 	}
 
 	// FileTypeExts 文件类型对应扩展名(不含".")
