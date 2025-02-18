@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/admpub/log"
@@ -107,37 +106,13 @@ func (c *ChunkUpload) calcFinisedSize(info ChunkInfor, fileName string) (uint64,
 }
 
 // 判断是否完成  根据现有文件的大小 与 上传文件大小进行匹配
-func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string, counter ...*int) (bool, error) {
+func (c *ChunkUpload) isFinish(info ChunkInfor, fileName string) (bool, error) {
+	finishedSize, err := c.calcFinisedSize(info, fileName)
+	if err != nil {
+		return false, err
+	}
 	fileSize := info.GetFileTotalBytes()
-	uid := c.GetUIDString()
-	flag := `chunkUpload.saveFileSizeInfo.` + uid + `.` + fileName
-	value, err, shared := chunkSg.Do(flag, func() (interface{}, error) {
-		finishedSize, err := c.calcFinisedSize(info, fileName)
-		return finishedSize, err
-	})
-	finishedSize := value.(uint64)
-	finished := finishedSize == fileSize
-	if err != nil || finished || !shared {
-		return finished, err
-	}
-	if len(counter) == 0 {
-		retries := 0
-		counter = []*int{&retries}
-	} else {
-		*(counter[0])++
-	}
-	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(echo.Dump(echo.H{
-			`finishedSize`: finishedSize, `fileSize`: fileSize, `wait`: true, `retries`: *(counter[0]),
-			`fileName`: fileName + `_` + strconv.FormatUint(info.GetChunkIndex(), 10),
-		}, false))
-	}
-	if *(counter[0]) > 3 {
-		return false, nil
-	}
-	log.Debugf(`[isFinish()] %s retry: %d`, c.chunkFileNameByInfo(fileName, info), *(counter[0]))
-	time.Sleep(time.Millisecond * 20)
-	return c.isFinish(info, fileName, counter...)
+	return finishedSize == fileSize, nil
 }
 
 func GenSavePath(saveDir string, saveFileName string, namer FileNameGenerator) (string, error) {
