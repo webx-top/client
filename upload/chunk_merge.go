@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/admpub/log"
-	"github.com/webx-top/echo"
 	"github.com/webx-top/echo/param"
 )
 
@@ -92,7 +91,7 @@ func (c *ChunkUpload) calcFinisedSize(info ChunkInfor, fileName string) (uint64,
 		}
 	}
 	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(fileName+`: `, echo.Dump(echo.H{`finishedSize`: finishedSize, `fileSize`: fileSize, `finishedCount`: finishedCount}, false))
+		log.Debugf(fileName+`: {fileSize:%v, finishedCount:%v, finishedSize:%v}`, fileSize, finishedCount, finishedSize)
 	}
 	if finishedCount == chunkTotal {
 		if finishedSize != fileSize {
