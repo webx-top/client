@@ -35,6 +35,7 @@ func (c *ChunkUpload) clearChunk(chunkTotal uint64, fileName, fileUUID string) e
 
 func (c *ChunkUpload) totalFile(chunkFileDir, fileName, fileUUID string) string {
 	totalFile := filepath.Join(c.statFileDir(chunkFileDir), fileName+".total.txt")
+	_ = fileUUID
 	return totalFile
 }
 
