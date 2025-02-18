@@ -184,7 +184,8 @@ func (c *ChunkUpload) ChunkUpload(ctx context.Context, info ChunkInfor, upFile i
 	// 新文件创建
 	chunkFilePath := c.chunkFilePathByInfo(chunkFileDir, fileOriginalName, info)
 	if log.IsEnabled(log.LevelDebug) {
-		log.Debug(chunkFilePath+`: `, com.Dump(info, false))
+		log.Debugf(chunkFilePath+`: {chunkBytes:%v}`, info.GetFileChunkBytes())
+		//log.Debug(chunkFilePath+`: `, com.Dump(info, false))
 	}
 
 	// 获取现在文件大小
