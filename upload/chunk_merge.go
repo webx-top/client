@@ -191,14 +191,17 @@ func (c *ChunkUpload) doMergeAllCase1(flag string, ctx context.Context, info Chu
 	})
 	if isNew {
 		err = <-done
-	} else {
-		close(done)
+		if err != nil {
+			return err
+		}
+		return ErrFileUploadCompleted
 	}
+	close(done)
 	return
 }
 
-func (c *ChunkUpload) doMergeAllCase2(flag string, ctx context.Context, info ChunkInfor, saveFileName string) (err error) {
-	_, err, _ = chunkSg.Do(flag, func() (interface{}, error) {
+func (c *ChunkUpload) doMergeAllCase2(flag string, ctx context.Context, info ChunkInfor, saveFileName string) error {
+	_, err, shared := chunkSg.Do(flag, func() (interface{}, error) {
 		exists, err := c.existsDistFile(saveFileName)
 		if err != nil || exists {
 			return nil, err
@@ -217,7 +220,13 @@ func (c *ChunkUpload) doMergeAllCase2(flag string, ctx context.Context, info Chu
 		}
 		return nil, err
 	})
-	return
+	if err != nil {
+		return err
+	}
+	if !shared {
+		return ErrFileUploadCompleted
+	}
+	return err
 }
 
 // 合并某个文件的所有切片
