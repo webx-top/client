@@ -2,7 +2,6 @@ package utesting
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -73,7 +72,7 @@ func UploadTestFile(t *testing.T, parentCU *upload.ChunkUpload, readSeeker io.Re
 		up := func(n int, chunkIndex int, chunkSize int) {
 			buf := bytes.NewBuffer(data[:n])
 			err := uploadChunk(buf, chunkIndex, chunkSize)
-			test.True(t, nil == err || errors.Is(err, upload.ErrFileUploadCompleted) || errors.Is(err, upload.ErrChunkUploadCompleted))
+			test.Eq(t, nil, err)
 			if chunkIndex == 0 {
 				buf = bytes.NewBuffer(data[:n])
 				err = uploadChunk(buf, chunkIndex, chunkSize)
