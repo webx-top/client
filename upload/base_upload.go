@@ -264,13 +264,13 @@ func (a *BaseClient) saveFile(result *Result, file multipart.File, options *Opti
 			result.FileSize = size
 		}
 	}
-	result.SavePath, result.FileURL, err = options.Storer.Put(dstFile, file, result.FileSize)
+	result.SavePath, result.FileURL, err = options.Storer.Put(a.Context, dstFile, file, result.FileSize)
 	if err != nil {
 		return
 	}
 	file.Seek(0, 0)
 	if err = options.Callback(result, originalFile, file); err != nil {
-		options.Storer.Delete(dstFile)
+		options.Storer.Delete(a.Context, dstFile)
 		return
 	}
 	return
