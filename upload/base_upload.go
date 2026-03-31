@@ -135,6 +135,7 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 		a.err = ErrInvalidContent
 		return a
 	}
+	defer m.RemoveAll()
 	options := &Options{}
 	for _, opt := range opts {
 		opt(options)
@@ -193,11 +194,11 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 					}
 					a.err = a.saveFile(result, file, options)
 					file.Close()
+					// 删除合并后的文件
+					os.Remove(a.chunkUpload.GetSavePath())
 					if a.err != nil {
 						return a
 					}
-					// 上传到最终位置后删除合并后的文件
-					os.Remove(a.chunkUpload.GetSavePath())
 					a.Results.Add(result)
 				}
 				continue
