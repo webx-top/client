@@ -23,6 +23,7 @@ type Options struct {
 	Checker          Checker
 	Callback         Callback
 	MaxSize          int64 // 单位字节 (0 代表未设置，小于 0 代表不限制)
+	AutoClean        bool
 }
 
 type OptionsSetter func(options *Options)
@@ -79,6 +80,12 @@ func OptCallback(callback Callback) OptionsSetter {
 func OptMaxSize(maxSize int64) OptionsSetter {
 	return func(options *Options) {
 		options.MaxSize = maxSize
+	}
+}
+
+func OptAutoClean(autoClean bool) OptionsSetter {
+	return func(options *Options) {
+		options.AutoClean = autoClean
 	}
 }
 

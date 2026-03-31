@@ -61,7 +61,7 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 		a.err = err
 		return a
 	}
-	if form != nil {
+	if form != nil && options.AutoClean {
 		defer form.RemoveAll()
 	}
 	if a.chunkUpload != nil {
@@ -142,10 +142,12 @@ func (a *BaseClient) BatchUpload(opts ...OptionsSetter) Client {
 		a.err = ErrInvalidContent
 		return a
 	}
-	defer m.RemoveAll()
 	options := &Options{}
 	for _, opt := range opts {
 		opt(options)
+	}
+	if options.AutoClean {
+		defer m.RemoveAll()
 	}
 	files, ok := m.File[a.Name()]
 	if !ok {
