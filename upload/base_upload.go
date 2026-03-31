@@ -56,13 +56,20 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 		}
 		defer file.Close()
 	}
+	form, err := a.Context.Request().MultipartForm()
+	if err != nil {
+		a.err = err
+		return a
+	}
+	if form != nil {
+		defer form.RemoveAll()
+	}
 	if a.chunkUpload != nil {
 		info := &ChunkInfo{
 			Mapping:     a.fieldMapping,
 			FileName:    options.Result.FileName,
 			CurrentSize: uint64(options.Result.FileSize),
 		}
-		a.Context.Request().MultipartForm()
 		info.Init(func(name string) string {
 			return a.Form(name)
 		}, a.Header)
@@ -74,13 +81,13 @@ func (a *BaseClient) Upload(opts ...OptionsSetter) Client {
 				if a.err != nil {
 					return a
 				}
-				defer fp.Close()
 				a.err = a.saveFile(options.Result, fp, options)
+				fp.Close()
+				// 删除合并后的文件
+				os.Remove(a.chunkUpload.GetSavePath())
 				if a.err != nil {
 					return a
 				}
-				// 上传到最终位置后删除合并后的文件
-				os.Remove(a.chunkUpload.GetSavePath())
 			}
 			return a
 		}
